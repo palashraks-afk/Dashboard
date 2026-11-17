@@ -365,13 +365,22 @@ function vConnect() {
 }
 
 /* ---------- ics ---------- */
-function icsEscape(s) { return String(s).replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n'); }
+function icsName(x) {
+  if (x.kind === 'Competition') return 'Submit ' + x.title;
+  if (x.kind === 'Internship' || x.kind === 'Program') return 'Apply to ' + x.title;
+  if (x.kind === 'SAT') return x.title.replace(/^SAT registration deadline \(test (.*), \d{4}\)$/, 'Register for SAT ($1)');
+  return x.title;
+}
+function icsDesc(x) {
+  var it = x.id ? findItem(x.id) : null; if (!it) return '';
+  return (it.todo || []).join(' ') + (it.link ? ' ' + it.link : '');
+}function icsEscape(s) { return String(s).replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n'); }
 function subUrl() { var u = location.href.split('#')[0].split('?')[0].replace(/[^/]*$/, '') + 'deadlines.ics'; return u.replace(/^https?:/, 'webcal:'); }
 function buildIcs() {
   var L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Sol//EN'];
   allDeadlines().forEach(function (x, i) {
     var a = x.iso.replace(/-/g, ''), d = parseIso(x.iso); d.setDate(d.getDate() + 1);
-    L.push('BEGIN:VEVENT', 'UID:pd-' + (x.id || ('x' + i)) + '-' + a + '@dashboard', 'DTSTAMP:' + todayIso().replace(/-/g, '') + 'T000000Z', 'DTSTART;VALUE=DATE:' + a, 'DTEND;VALUE=DATE:' + isoOf(d).replace(/-/g, ''), 'SUMMARY:' + icsEscape(x.kind + ': ' + x.title), 'BEGIN:VALARM', 'TRIGGER:-P7D', 'ACTION:DISPLAY', 'DESCRIPTION:Due in a week', 'END:VALARM', 'BEGIN:VALARM', 'TRIGGER:-P3D', 'ACTION:DISPLAY', 'DESCRIPTION:Due in 3 days', 'END:VALARM', 'BEGIN:VALARM', 'TRIGGER:-P1D', 'ACTION:DISPLAY', 'DESCRIPTION:Due tomorrow', 'END:VALARM', 'END:VEVENT');
+    L.push('BEGIN:VEVENT', 'UID:pd-' + (x.id || ('x' + i)) + '-' + a + '@dashboard', 'DTSTAMP:' + todayIso().replace(/-/g, '') + 'T000000Z', 'DTSTART;VALUE=DATE:' + a, 'DTEND;VALUE=DATE:' + isoOf(d).replace(/-/g, ''), 'SUMMARY:' + icsEscape(icsName(x)), 'DESCRIPTION:' + icsEscape(icsDesc(x)), 'BEGIN:VALARM', 'TRIGGER:-P7D', 'ACTION:DISPLAY', 'DESCRIPTION:Due in a week', 'END:VALARM', 'BEGIN:VALARM', 'TRIGGER:-P3D', 'ACTION:DISPLAY', 'DESCRIPTION:Due in 3 days', 'END:VALARM', 'BEGIN:VALARM', 'TRIGGER:-P1D', 'ACTION:DISPLAY', 'DESCRIPTION:Due tomorrow', 'END:VALARM', 'END:VEVENT');
   });
   L.push('END:VCALENDAR'); return L.join('\r\n');
 }
@@ -600,6 +609,7 @@ window.PD = {
   setPal: function (n) { lsSet('pd_pal', n); applyPal(); render(); },
   due: function (fromIso, toIso) { return allDeadlines().filter(function (x) { return x.iso >= fromIso && x.iso <= toIso; }); },
   eventsOn: function (iso) { return eventsOn(parseIso(iso)); },
+  ics: function () { return buildIcs(); },
   addTask: function (title, due) { S.tasks.push({ id: uid('t'), title: String(title).slice(0, 200), due: due || '', course: '', type: 'Task', done: false }); save(); render(); },
   setStatus: function (id, st) {
     var known = SEED.competitions.concat(SEED.programs, SEED.extra).some(function (x) { return x.id === id; });
