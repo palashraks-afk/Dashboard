@@ -418,14 +418,13 @@ function loginScreen(msg) {
   if (!cloud && !first && bioOn() && !msg) setTimeout(bioUnlock, 250);
 }
 function enter() { ssSet(UNLOCK, '1'); view = 'today'; render(); startReminders(); }
+var SOLPW = 'sol-v1-open-sync-account';
 function boot() {
   load();
-  if (cloudOn()) {
-    if (session()) { if (S.profile.pinHash && !ssGet(UNLOCK)) { loginScreen(); return; } setSync('Loading...'); cloudPull().then(function (changed) { if (changed) { setSync('Loaded from cloud'); } else { cloudPush(); } enter(); }).catch(function (e) { setSync('Offline: ' + e.message); enter(); }); return; }
-    loginScreen(); return;
-  }
-  if (!S.profile.pinHash) { if (lsGet('pd_nopin') || ssGet(UNLOCK)) enter(); else loginScreen(); return; }
-  if (ssGet(UNLOCK)) enter(); else loginScreen();
+  if (!cloudOn()) { enter(); return; }
+  setSync('Loading...');
+  var go = session() ? Promise.resolve() : fbAuth('in', SOLMAIL, SOLPW).catch(function () { return fbAuth('up', SOLMAIL, SOLPW); });
+  go.then(function () { return cloudPull(); }).then(function (changed) { if (changed) setSync('Loaded from cloud'); else cloudPush(); enter(); }).catch(function (e) { setSync('Offline: ' + e.message); enter(); });
 }
 
 /* ---------- reminders ---------- */
