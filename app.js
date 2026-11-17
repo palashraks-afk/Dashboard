@@ -46,9 +46,7 @@ function defaultState() {
     profile: { name: 'Palash', pinHash: '' }, status: {}, notes: {},
     tasks: SEED.tasks.map(function (t) { return { id: t.id, title: t.title, due: t.due, course: t.course, type: t.type, info: t.info, link: t.link, done: false }; }),
     events: [
-      { id: 'e1', title: 'SAT practice (example)', start: '19:00', end: '20:00', cat: 'sat', days: [0, 2, 4], example: true },
       { id: 'e3', title: 'SAT prep', start: '17:30', end: '18:30', cat: 'sat', date: '2026-11-17' },
-      { id: 'e2', title: 'FlowPhase lab or data work (example)', start: '16:00', end: '17:30', cat: 'sci', days: [5], example: true }
     ],
     sat: { tests: [], plan: {} },
     updated: 0
@@ -63,7 +61,7 @@ function load() {
   S = d;
 }
 var pushTimer = null;
-function save() { S.updated = Date.now(); lsSet(KEY, JSON.stringify(S)); if (cloudOn() && session()) { clearTimeout(pushTimer); setSync('Saving...'); pushTimer = setTimeout(cloudPush, 1500); } }
+function save() { S.updated = Date.now(); lsSet(KEY, JSON.stringify(S)); if (cloudOn() && session()) { clearTimeout(pushTimer); setSync('Saving...'); pushTimer = setTimeout(cloudPush, 600); } }
 
 /* ---------- config, auth ---------- */
 var SOLMAIL = 'sol@palashraks-afk.github.io';
@@ -139,6 +137,30 @@ function eventsOn(d) {
   return S.events.filter(function (e) { return (e.days && e.days.indexOf(di) >= 0) || e.date === iso; }).sort(function (a, b) { return a.start < b.start ? -1 : 1; });
 }
 function openBtn(link, label) { return link ? '<a class="btn small" href="' + esc(link) + '" target="_blank" rel="noopener">' + (label || 'Open') + ' &#8599;</a>' : ''; }
+var CAL = { off: 0, sel: null };
+var MONFULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+function dayAgenda(iso) {
+  var evs = eventsOn(parseIso(iso)), dls = allDeadlines().filter(function (x) { return x.iso === iso && (x.id || x.kind === 'SAT'); });
+  var o = '<div class="cal-ag"><b>' + fmt(iso) + '</b><ul class="list">';
+  evs.forEach(function (e) { o += '<li><span class="t"><b>' + esc(e.start) + '</b> ' + esc(e.title) + '</span><button class="x" data-act="delevent" data-id="' + e.id + '" title="Delete">&times;</button></li>'; });
+  dls.forEach(function (x) { o += '<li><span class="t' + (x.id ? ' click' : '') + '"' + (x.id ? ' data-act="detail" data-id="' + x.id + '"' : '') + '>' + esc(shortTxt(x.title, 40)) + ' <span class="tag">' + x.kind + '</span></span></li>'; });
+  if (!evs.length && !dls.length) o += '<li class="muted">Nothing on this day.</li>';
+  return o + '</ul></div>';
+}
+function calHtml() {
+  var tdy = todayIso(), sel = CAL.sel || tdy;
+  var b = new Date(); b.setDate(1); b.setMonth(b.getMonth() + CAL.off);
+  var y = b.getFullYear(), m = b.getMonth(), lead = dowIdx(b), n = new Date(y, m + 1, 0).getDate(), by = {};
+  allDeadlines().forEach(function (x) { if (x.id || x.kind === 'SAT') (by[x.iso] = by[x.iso] || []).push(x); });
+  var o = '<div class="cal"><div class="cal-hd"><button class="x" data-act="calprev" aria-label="Previous month">&#8249;</button><b>' + MONFULL[m] + ' ' + y + '</b><button class="btn ghost small" data-act="caltoday">Today</button><button class="x" data-act="calnext" aria-label="Next month">&#8250;</button></div><div class="cal-g">';
+  DOW.forEach(function (d) { o += '<div class="cal-dw">' + d.slice(0, 2) + '</div>'; });
+  for (var i = 0; i < lead; i++) o += '<div></div>';
+  for (var d = 1; d <= n; d++) {
+    var iso = y + '-' + pad(m + 1) + '-' + pad(d), ne = eventsOn(new Date(y, m, d)).length, nd = (by[iso] || []).length;
+    o += '<button class="cal-c' + (iso === tdy ? ' today' : '') + (iso === sel ? ' sel' : '') + '" data-act="calday" data-id="' + iso + '"><span>' + d + '</span><span class="cal-dots">' + (ne ? '<i></i>' : '') + (nd ? '<i class="d"></i>' : '') + (nd > 1 ? '<i class="d"></i>' : '') + '</span></button>';
+  }
+  return o + '</div>' + dayAgenda(sel) + '</div>';
+}
 function vToday() {
   var now = new Date(), h = now.getHours(), g = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
   var tdy = todayIso(), dl = allDeadlines();
@@ -159,7 +181,7 @@ function vToday() {
   var tl = S.tasks.filter(function (t) { return !t.done && t.due && t.due <= tdy; }).sort(function (a, b) { return a.due < b.due ? -1 : 1; });
   o += '<div class="two"><div><h2>Do today</h2><div class="card"><form data-form="quicktask" class="row"><input type="text" name="title" placeholder="Add a task" required style="flex:1;min-width:140px"><input type="date" name="due" value="' + tdy + '"><button class="btn">Add</button></form><ul class="list">' + (tl.length ? tl.map(taskLi).join('') : '<li class="muted">Nothing due.</li>') + '</ul></div>' +
     '<h2>Schedule</h2><div class="card"><ul class="list">' + (ev.length ? ev.map(function (e) { return '<li><span class="t"><b>' + esc(e.start) + '</b> ' + esc(e.title) + '</span></li>'; }).join('') : '<li class="muted">No blocks today.</li>') + '</ul></div></div>' +
-    '<div><h2>Reminders</h2><div class="card"><ul class="list">' + remList(dl) + '</ul></div></div></div>';
+    '<div><h2>Calendar</h2><div class="card">' + calHtml() + '</div><h2>Reminders</h2><div class="card"><ul class="list">' + remList(dl) + '</ul></div></div></div>';
   o += '<h2>Deadlines, closest first</h2>' + colHead('Due', 'What', 'What to do next', 'Status') + deadlineRows(dl);
   return o;
 }
@@ -317,13 +339,8 @@ function vSat() {
 function vSched() {
   var now = new Date(), ti = dowIdx(now);
   var h2 = '<div class="hd"><h1>Schedule</h1></div>';
-  h2 += '<div class="card" style="margin-top:12px"><form data-form="event" class="row"><input type="text" name="title" placeholder="Block or event" required style="flex:1;min-width:150px"><input type="time" name="start" value="16:00" required><input type="time" name="end" value="17:00" required><select name="cat"><option value="sat">SAT</option><option value="sci">Science</option><option value="school">School</option><option value="life">Life</option></select><select name="repeat"><option value="weekly">Every week on...</option><option value="once">One date</option></select><select name="dow">' + DOW.map(function (d, i) { return '<option value="' + i + '"' + (i === ti ? ' selected' : '') + '>' + d + '</option>'; }).join('') + '</select><input type="date" name="date" value="' + todayIso() + '"><button class="btn">Add</button></form><small class="muted">For "Every week" pick the weekday. For "One date" the date is used.</small></div>';
-  h2 += '<h2>This week</h2><div class="week">';
-  for (var i = 0; i < 7; i++) {
-    var d = new Date(now); d.setDate(now.getDate() - ti + i);
-    h2 += '<div class="day' + (i === ti ? ' today' : '') + '"><h3>' + DOW[i] + ' ' + cap(MON[d.getMonth()]) + ' ' + d.getDate() + '</h3>' + eventsOn(d).map(function (e) { return '<div class="blk cat-' + e.cat + '"><b>' + esc(e.start) + '</b> ' + esc(e.title) + (e.example ? ' <span class="tag ex">example</span>' : '') + '<small><button class="x" data-act="delevent" data-id="' + e.id + '" title="Delete">&times;</button></small></div>'; }).join('') + '</div>';
-  }
-  h2 += '</div><div class="row" style="margin-top:10px"><button class="btn ghost small" data-act="clearexamples">Remove example blocks</button></div>';
+  h2 += '<div class="card" style="margin-top:12px"><form data-form="event" class="row"><input type="text" name="title" placeholder="Block or event" required style="flex:1;min-width:150px"><input type="time" name="start" value="16:00" required><input type="time" name="end" value="17:00" required><select name="cat"><option value="sat">SAT</option><option value="sci">Science</option><option value="school">School</option><option value="life">Life</option></select><select name="repeat"><option value="weekly">Every week on...</option><option value="once">One date</option></select><select name="dow">' + DOW.map(function (d, i) { return '<option value="' + i + '"' + (i === ti ? ' selected' : '') + '>' + d + '</option>'; }).join('') + '</select><input type="date" name="date" value="' + (CAL.sel || todayIso()) + '"><button class="btn">Add</button></form><small class="muted">For "Every week" pick the weekday. For "One date" the date is used.</small></div>';
+  h2 += '<h2>Calendar</h2><div class="card">' + calHtml() + '</div>';
   var wk = allDeadlines().filter(function (x) { var n = daysUntil(x.iso); return n >= 0 && n <= 7; });
   h2 += '<h2>Deadlines in the next 7 days</h2><div class="card"><ul class="list">' + (wk.length ? wk.map(function (x) { return '<li><span class="t">' + esc(x.title) + ' <span class="tag">' + x.kind + '</span></span>' + leftTxt(x.iso) + '</li>'; }).join('') : '<li class="muted">None.</li>') + '</ul></div>';
   return h2;
@@ -337,7 +354,7 @@ function vConnect() {
   h2 += '<div class="two"><div><h2>Assistant</h2><div class="card"><p>Turn on the web-searching assistant with your Anthropic API key. It is stored only in this browser and is never synced.</p><form data-form="ai" style="display:grid;gap:8px"><input type="password" name="key" placeholder="sk-ant-..." value="' + esc(ac.key || '') + '" autocomplete="off"><input type="text" name="model" placeholder="Model" value="' + esc(ac.model || '') + '"><label><input type="checkbox" name="web"' + (ac.web !== false ? ' checked' : '') + '> Allow web search</label><div class="row"><button class="btn">Save</button><button type="button" class="btn ghost" data-act="clearai">Remove key</button></div></form></div></div></div>';
   h2 += '<h2>Colors</h2><div class="card"><div class="pal">' + PALS.map(function (x) { var on = (lsGet('pd_pal') || 'apple') === x[0]; return '<button data-act="pal" data-id="' + x[0] + '" class="' + (on ? 'on' : '') + '"><i style="background:linear-gradient(90deg,' + x[3] + ' 55%,' + x[2] + ' 55%)"></i>' + x[1] + '</button>'; }).join('') + '</div></div>';
   h2 += '<div class="two"><div><h2>Account and sync</h2><div class="card"><p>' + (cloudOn() ? (s ? 'Signed in as <b>' + esc(s.email) + '</b>. <span class="sync" id="syncmsg">' + esc(syncMsg) + '</span>' : 'Cloud sync is configured. Sign out and back in to link your account.') : 'Right now your data lives only in this browser. Add your Supabase URL and key below to sync across phone and laptop with a real login.') + '</p>' +
-    '<div class="row">' + (s ? '<button class="btn" data-act="syncnow">Sync now</button><button class="btn ghost" data-act="signout">Sign out</button>' : '') + '<button class="btn ghost" data-act="lock">Lock</button>' + (S.profile.pinHash && !cloudOn() ? (bioOn() ? '<button class="btn ghost" data-act="biooff">Turn off Touch ID</button>' : '<button class="btn ghost" data-act="bioon">Turn on Touch ID</button>') : '') + '</div></div>' +
+    '<div class="row">' + (s ? '<button class="btn" data-act="syncnow">Sync now</button><button class="btn ghost" data-act="signout">Sign out</button>' : '') + (S.profile.pinHash && !cloudOn() ? (bioOn() ? '<button class="btn ghost" data-act="biooff">Turn off Touch ID</button>' : '<button class="btn ghost" data-act="bioon">Turn on Touch ID</button>') : '') + '</div></div>' +
     '<h2>Supabase keys</h2><div class="card"><form data-form="fb" style="display:grid;gap:8px"><input type="text" name="url" placeholder="Project URL" value="' + esc(c.url || '') + '"><input type="text" name="key" placeholder="anon / publishable key" value="' + esc(c.key || '') + '"><div class="row"><button class="btn">Save keys</button><button type="button" class="btn ghost" data-act="clearfb">Remove keys</button></div></form></div></div>';
   h2 += '<div><h2>Apple Calendar</h2><div class="card"><p>Web pages cannot write into Apple Calendar directly, so there are two links. <b>Subscribe</b> keeps a calendar called Palash Deadlines updated on your Mac, iPhone and iPad. <b>Add once</b> imports your current list including tasks you added here.</p><div class="row"><a class="btn" href="' + subUrl() + '">Subscribe in Apple Calendar</a><button class="btn ghost" data-act="ics">Add once (.ics)</button><button class="btn ghost" data-act="notify">Browser notifications</button></div><p class="muted">Subscribe works from your hosted site (GitHub Pages) and shows the deadlines saved in the repo file deadlines.ics. Every item reminds you 7 days, 3 days and 1 day before. Browser notifications only fire while this tab is open.</p></div>' +
     '<h2>Bring in school assignments</h2><div class="card"><p>Export or subscribe to your school calendar (Google Classroom, Canvas, Schoology and PowerSchool all offer an .ics or calendar link) and import the file here. Items with due dates become tasks.</p><input type="file" id="icsfile" accept=".ics,text/calendar"></div>' +
@@ -380,8 +397,9 @@ function importIcs(text) {
 /* ---------- render ---------- */
 var app = document.getElementById('app');
 function render() {
+  if (S && S.events) S.events = S.events.filter(function (e) { return !e.example; });
   var body = view === 'today' ? vToday() : view === 'comps' ? vComps() : view === 'progs' ? vProgs() : view === 'school' ? vSchool() : view === 'sat' ? vSat() : view === 'sched' ? vSched() : vConnect();
-  app.innerHTML = '<div class="shell"><nav class="side"><div class="brand"><svg class="logo" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#000"/><defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd37e"/><stop offset="1" stop-color="#ff7a45"/></linearGradient></defs><path d="M244.4 143.5 A130.6 130.6 0 0 0 244.4 404.6 Z" fill="#eef2f5"/><path d="M268.2 107.8 A130.6 130.6 0 0 1 268.2 369.2 Z" fill="url(#sg)"/></svg><span>Sol</span></div>' + NAV.map(function (n) { return '<button data-nav="' + n[0] + '" class="' + (view === n[0] ? 'on' : '') + '">' + n[1] + '</button>'; }).join('') + '<div class="grow"></div><button data-act="ask" class="ask">Ask <kbd>Ctrl K</kbd></button><button data-act="lock">Lock</button></nav><main>' + body + '</main></div>';
+  app.innerHTML = '<div class="shell"><nav class="side"><div class="brand"><svg class="logo" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#000"/><defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd37e"/><stop offset="1" stop-color="#ff7a45"/></linearGradient></defs><path d="M244.4 143.5 A130.6 130.6 0 0 0 244.4 404.6 Z" fill="#eef2f5"/><path d="M268.2 107.8 A130.6 130.6 0 0 1 268.2 369.2 Z" fill="url(#sg)"/></svg><span>Sol</span></div>' + NAV.map(function (n) { return '<button data-nav="' + n[0] + '" class="' + (view === n[0] ? 'on' : '') + '">' + n[1] + '</button>'; }).join('') + '<div class="grow"></div><button data-act="ask" class="ask">Ask <kbd>Ctrl K</kbd></button></nav><main>' + body + '</main></div>';
   if (window.AI) AI.draw();
 }
 function go(v) { view = v; render(); window.scrollTo(0, 0); }
@@ -427,6 +445,13 @@ function boot() {
   go.then(function () { return cloudPull(); }).then(function (changed) { if (changed) setSync('Loaded from cloud'); else cloudPush(); enter(); }).catch(function (e) { setSync('Offline: ' + e.message); enter(); });
 }
 
+function autoPull() {
+  if (!cloudOn() || !session() || document.hidden) return;
+  cloudPull().then(function (ch) { if (ch) { setSync('Updated ' + new Date().toLocaleTimeString()); var t = document.activeElement && document.activeElement.tagName; if (!/INPUT|TEXTAREA|SELECT/.test(t || '')) render(); } }).catch(function () {});
+}
+setInterval(autoPull, 15000);
+document.addEventListener('visibilitychange', function () { if (!document.hidden) autoPull(); });
+window.addEventListener('focus', autoPull);
 /* ---------- reminders ---------- */
 var fired = {}, remTimer = null;
 function startReminders() {
@@ -449,6 +474,10 @@ document.addEventListener('click', function (e) {
   var a = b.getAttribute('data-act'), id = b.getAttribute('data-id');
   if (a === 'deltask') { S.tasks = S.tasks.filter(function (t) { return t.id !== id; }); save(); render(); }
   else if (a === 'delevent') { S.events = S.events.filter(function (t) { return t.id !== id; }); save(); render(); }
+  else if (a === 'calprev') { CAL.off--; render(); }
+  else if (a === 'calnext') { CAL.off++; render(); }
+  else if (a === 'caltoday') { CAL.off = 0; CAL.sel = todayIso(); render(); }
+  else if (a === 'calday') { CAL.sel = id; render(); }
   else if (a === 'delsat') { S.sat.tests = S.sat.tests.filter(function (t) { return t.id !== id; }); save(); render(); }
   else if (a === 'clearexamples') { S.events = S.events.filter(function (t) { return !t.example; }); save(); render(); }
   else if (a === 'resetplan') { S.sat.plan = {}; save(); render(); }
