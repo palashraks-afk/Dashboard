@@ -377,7 +377,7 @@ function icsDesc(x) {
 }function icsEscape(s) { return String(s).replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n'); }
 function subUrl() { var u = location.href.split('#')[0].split('?')[0].replace(/[^/]*$/, '') + 'deadlines.ics'; return u.replace(/^https?:/, 'webcal:'); }
 function buildIcs() {
-  var L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Sol//EN'];
+  var L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Sol//EN', 'X-WR-CALNAME:Palash Deadlines', 'REFRESH-INTERVAL;VALUE=DURATION:PT12H', 'X-PUBLISHED-TTL:PT12H'];
   allDeadlines().forEach(function (x, i) {
     var a = x.iso.replace(/-/g, ''), d = parseIso(x.iso); d.setDate(d.getDate() + 1);
     L.push('BEGIN:VEVENT', 'UID:pd-' + (x.id || ('x' + i)) + '-' + a + '@dashboard', 'DTSTAMP:' + todayIso().replace(/-/g, '') + 'T000000Z', 'DTSTART;VALUE=DATE:' + a, 'DTEND;VALUE=DATE:' + isoOf(d).replace(/-/g, ''), 'SUMMARY:' + icsEscape(icsName(x)), 'DESCRIPTION:' + icsEscape(icsDesc(x)), 'BEGIN:VALARM', 'TRIGGER:-P7D', 'ACTION:DISPLAY', 'DESCRIPTION:Due in a week', 'END:VALARM', 'BEGIN:VALARM', 'TRIGGER:-P3D', 'ACTION:DISPLAY', 'DESCRIPTION:Due in 3 days', 'END:VALARM', 'BEGIN:VALARM', 'TRIGGER:-P1D', 'ACTION:DISPLAY', 'DESCRIPTION:Due tomorrow', 'END:VALARM', 'END:VEVENT');
