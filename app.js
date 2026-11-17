@@ -66,6 +66,7 @@ var pushTimer = null;
 function save() { S.updated = Date.now(); lsSet(KEY, JSON.stringify(S)); if (cloudOn() && session()) { clearTimeout(pushTimer); setSync('Saving...'); pushTimer = setTimeout(cloudPush, 1500); } }
 
 /* ---------- config, auth ---------- */
+var SOLMAIL = 'sol@palashraks-afk.github.io';
 function cfg() { var c = {}; try { c = JSON.parse(lsGet(CFGKEY) || '{}'); } catch (e) {} if (!c.url && SEED.supabase) c = SEED.supabase; return c; }
 function cloudOn() { var c = cfg(); return !!(c.url && c.key); }
 function session() { try { return JSON.parse(lsGet(SESSKEY) || 'null'); } catch (e) { return null; } }
@@ -406,8 +407,8 @@ function bioUnlock() {
 function loginScreen(msg) {
   var cloud = cloudOn(), first = !S.profile.pinHash;
   var h2 = '<div class="login"><div class="box"><svg class="logo" style="width:56px;height:56px" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#000"/><defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd37e"/><stop offset="1" stop-color="#ff7a45"/></linearGradient></defs><path d="M244.4 143.5 A130.6 130.6 0 0 0 244.4 404.6 Z" fill="#eef2f5"/><path d="M268.2 107.8 A130.6 130.6 0 0 1 268.2 369.2 Z" fill="url(#sg)"/></svg><h1>Sol</h1>';
-  if (cloud) {
-    h2 += '<p class="muted">Sign in to load your saved dashboard.</p><form data-form="login" style="display:grid;gap:10px"><input type="email" name="email" placeholder="Email" required autocomplete="username"><input type="password" name="pw" placeholder="Password" required minlength="6" autocomplete="current-password"><div class="err" id="err">' + esc(msg || '') + '</div><button class="btn" name="mode" value="in">Sign in</button><button class="btn ghost" name="mode" value="up">Create account</button></form>';
+  if (cloud && !session()) {
+    h2 += '<p class="muted">Enter your PIN. First time on this account? Type a PIN and tap Set up.</p><form data-form="login" style="display:grid;gap:10px"><input type="password" name="pin" placeholder="PIN" inputmode="numeric" minlength="4" required autofocus autocomplete="off"><div class="err" id="err">' + esc(msg || '') + '</div><button class="btn" name="mode" value="in">Unlock</button><button type="submit" class="btn ghost" name="mode" value="up">Set up (first time)</button></form>';
   } else if (first) {
     h2 += '<p class="muted">Set a PIN for this device, or continue without one. This is a screen lock for this browser only. Your data stays on this device until you connect cloud sync on the Connect tab.</p><form data-form="setpin" style="display:grid;gap:10px"><input type="text" name="name" placeholder="Your name" value="' + esc(S.profile.name || '') + '"><input type="password" name="pin" placeholder="PIN (4 or more digits)" inputmode="numeric" minlength="4"><div class="err" id="err">' + esc(msg || '') + '</div><button class="btn">Set PIN and open</button><button type="button" class="btn ghost" data-act="nopin">Continue without a PIN</button></form>';
   } else {
@@ -420,7 +421,7 @@ function enter() { ssSet(UNLOCK, '1'); view = 'today'; render(); startReminders(
 function boot() {
   load();
   if (cloudOn()) {
-    if (session()) { setSync('Loading...'); cloudPull().then(function (changed) { if (changed) { setSync('Loaded from cloud'); } else { cloudPush(); } enter(); }).catch(function (e) { setSync('Offline: ' + e.message); enter(); }); return; }
+    if (session()) { if (S.profile.pinHash && !ssGet(UNLOCK)) { loginScreen(); return; } setSync('Loading...'); cloudPull().then(function (changed) { if (changed) { setSync('Loaded from cloud'); } else { cloudPush(); } enter(); }).catch(function (e) { setSync('Offline: ' + e.message); enter(); }); return; }
     loginScreen(); return;
   }
   if (!S.profile.pinHash) { if (lsGet('pd_nopin') || ssGet(UNLOCK)) enter(); else loginScreen(); return; }
@@ -495,10 +496,12 @@ document.addEventListener('submit', function (e) {
   else if (k === 'fb') { lsSet(CFGKEY, JSON.stringify({ url: v.url.trim(), key: v.key.trim() })); alert('Saved. Sign out and sign in to link your account.'); render(); }
   else if (k === 'paste') { var ps = parsePaste(v.txt, v.course); ps.forEach(function (x) { if (!S.tasks.some(function (t) { return t.title === x.title && t.due === x.due; })) S.tasks.push({ id: uid('t'), title: x.title, due: x.due, course: x.course, type: 'Assignment', done: false }); }); save(); alert(ps.length + ' added.'); render(); }
   else if (k === 'setpin') { S.profile.name = v.name || 'Palash'; if (v.pin && v.pin.length >= 4) { hashPin(v.pin).then(function (h) { S.profile.pinHash = h; save(); enter(); }); } else { var er = document.getElementById('err'); if (er) er.textContent = 'Use at least 4 digits, or continue without a PIN.'; } }
-  else if (k === 'pin') { hashPin(v.pin).then(function (h) { if (h === S.profile.pinHash) enter(); else { var er2 = document.getElementById('err'); if (er2) er2.textContent = 'Wrong PIN.'; } }); }
+  else if (k === 'pin') { hashPin(v.pin).then(function (h) { if (h === S.profile.pinHash) { if (cloudOn() && session()) { setSync('Loading...'); cloudPull().then(function () { enter(); }).catch(function () { enter(); }); } else enter(); } else { var er2 = document.getElementById('err'); if (er2) er2.textContent = 'Wrong PIN.'; } }); }
   else if (k === 'login') {
-    var mode = (e.submitter && e.submitter.value) || 'in', er3 = document.getElementById('err'); if (er3) er3.textContent = 'Working...';
-    fbAuth(mode, v.email, v.pw).then(function () { return cloudPull(); }).then(function (ch) { if (!ch) cloudPush(); enter(); }).catch(function (x) { loginScreen(x.message.replace(/_/g, ' ').toLowerCase()); });
+    var mode = (e.submitter && e.submitter.value) || 'in', er3 = document.getElementById('err'), pin3 = (v.pin || '').trim();
+    if (pin3.length < 4) { if (er3) er3.textContent = 'Use at least 4 digits.'; return; }
+    if (er3) er3.textContent = 'Working...';
+    fbAuth(mode, SOLMAIL, 'sol-v1-' + pin3).then(function () { return cloudPull(); }).then(function (ch) { if (!ch) cloudPush(); return hashPin(pin3); }).then(function (h) { S.profile = S.profile || { name: 'Palash' }; S.profile.pinHash = h; lsSet(KEY, JSON.stringify(S)); enter(); }).catch(function (x) { var m = (x.message || '').toLowerCase(); loginScreen(/invalid login/.test(m) ? 'Wrong PIN. If this is your first time, tap Set up.' : /already registered/.test(m) ? 'Account exists. Tap Unlock with your PIN.' : m.replace(/_/g, ' ')); });
   }
 });
 
