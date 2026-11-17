@@ -240,7 +240,7 @@ function dueChip(iso, text, approx, closed) {
 }
 function fmtShort(iso) { return parseIso(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
 function colHead(a, b, c, d) { return '<div class="cols head"><span>' + a + '</span><span>' + b + '</span><span>' + c + '</span><span>' + d + '</span></div>'; }
-var PSTAR = { p67: 5, p68: 5, p20: 5, p43: 5, p12: 5, p73: 5, p16: 5, p10: 5, p28: 5, p8: 1, p22: 4, p13: 4, p34: 1, p36: 1, p11: 4, p46: 4, p29: 2, p33: 1, p69: 4, p35: 4, p7: 4, p40: 4, p32: 4, p71: 4, p15: 4, p53: 4, p50: 4, p48: 4, p54: 4, p21: 2, p5: 2, p38: 2, p39: 2, p6: 2, p63: 2, p66: 2 };
+var PSTAR = { p67: 5, p68: 5, p20: 5, p43: 5, p12: 5, p73: 5, p16: 5, p10: 5, p28: 5, p8: 1, p22: 4, p13: 4, p34: 1, p36: 1, p11: 4, p46: 4, p29: 2, p33: 1, p75: 4, p76: 4, p77: 3, p78: 2, p79: 2, p80: 3, p81: 3, p82: 3, p83: 3, p69: 4, p35: 4, p7: 4, p40: 4, p32: 4, p71: 4, p15: 4, p53: 4, p50: 4, p48: 4, p54: 4, p21: 2, p5: 2, p38: 2, p39: 2, p6: 2, p63: 2, p66: 2 };
 function starsOf(id) {
   var v = S.stars && S.stars[id]; if (v) return v;
   var c = SEED.competitions.filter(function (x) { return x.id === id; })[0];
@@ -248,7 +248,7 @@ function starsOf(id) {
 }
 function starsHtml(n) { return '<span class="stars" aria-label="Importance ' + n + ' of 5">' + '\u2605'.repeat(n) + '<i>' + '\u2605'.repeat(5 - n) + '</i></span>'; }
 function starPicker(id) { var n = starsOf(id), o = '<span class="rate">'; for (var i = 1; i <= 5; i++) o += '<button type="button" class="star' + (i <= n ? ' on' : '') + '" data-act="setstar" data-id="' + id + '" data-v="' + i + '" aria-label="' + i + ' stars">\u2605</button>'; return o + '</span>'; }
-function byStars(a, b, ka, kb) { var d = starsOf(b.id) - starsOf(a.id); return d || (ka < kb ? -1 : ka > kb ? 1 : 0); }function segHtml() { return '<div class="seg" role="group" aria-label="Order by"><button data-act="sortset" data-id="date" class="' + (F.sort !== 'rank' ? 'on' : '') + '">Time</button><button data-act="sortset" data-id="rank" class="' + (F.sort === 'rank' ? 'on' : '') + '">Importance</button></div>'; }
+function byStars(a, b, ka, kb) { var za = /^zz/.test(ka), zb = /^zz/.test(kb); if (za !== zb) return za ? 1 : -1; var d = starsOf(b.id) - starsOf(a.id); return d || (ka < kb ? -1 : ka > kb ? 1 : 0); }function segHtml() { return '<div class="seg" role="group" aria-label="Order by"><button data-act="sortset" data-id="date" class="' + (F.sort !== 'rank' ? 'on' : '') + '">Time</button><button data-act="sortset" data-id="rank" class="' + (F.sort === 'rank' ? 'on' : '') + '">Importance</button></div>'; }
 function chipsHtml(list, cnt, cur, act) {
   var total = 0; list.forEach(function (k) { total += cnt[k] || 0; });
   return '<div class="chips"><button class="chip2' + (!cur ? ' on' : '') + '" data-act="' + act + '" data-id="">All <b>' + total + '</b></button>' + list.filter(function (k) { return cnt[k]; }).map(function (k) { return '<button class="chip2' + (cur === k ? ' on' : '') + '" data-act="' + act + '" data-id="' + esc(k) + '">' + esc(k) + ' <b>' + cnt[k] + '</b></button>'; }).join('') + '</div>';
