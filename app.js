@@ -240,7 +240,7 @@ function dueChip(iso, text, approx, closed) {
 }
 function fmtShort(iso) { return parseIso(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
 function colHead(a, b, c, d) { return '<div class="cols head"><span>' + a + '</span><span>' + b + '</span><span>' + c + '</span><span>' + d + '</span></div>'; }
-var PSTAR = { p67: 5, p68: 5, p20: 5, p43: 5, p12: 5, p73: 5, p16: 5, p10: 5, p28: 5, p8: 1, p22: 4, p13: 4, p34: 1, p36: 1, p11: 4, p46: 4, p29: 2, p33: 1, p75: 4, p76: 4, p77: 3, p78: 2, p79: 2, p80: 3, p81: 3, p82: 3, p83: 3, p69: 4, p35: 4, p7: 4, p40: 4, p32: 4, p71: 4, p15: 4, p53: 4, p50: 4, p48: 4, p54: 4, p21: 2, p5: 2, p38: 2, p39: 2, p6: 2, p63: 2, p66: 2 };
+var PSTAR = { p67: 5, p68: 5, p20: 5, p43: 5, p12: 5, p73: 5, p16: 5, p10: 5, p28: 5, p8: 1, p22: 4, p13: 4, p34: 1, p36: 1, p11: 4, p46: 4, p29: 2, p33: 1, p75: 4, p76: 4, p77: 3, p78: 2, p79: 2, p80: 3, p81: 3, p82: 3, p83: 3, p84: 3, p1: 4, p89: 3, p85: 3, p86: 2, p87: 4, p88: 3, p69: 4, p35: 4, p7: 4, p40: 4, p32: 4, p71: 4, p15: 4, p53: 4, p50: 4, p48: 4, p54: 4, p21: 2, p5: 2, p38: 2, p39: 2, p6: 2, p63: 2, p66: 2 };
 function starsOf(id) {
   var v = S.stars && S.stars[id]; if (v) return v;
   var c = SEED.competitions.filter(function (x) { return x.id === id; })[0];
