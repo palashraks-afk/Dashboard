@@ -697,6 +697,7 @@ window.PD = {
   eventsOn: function (iso) { return eventsOn(parseIso(iso)); },
   ics: function () { return buildIcs(); },
   say: function (t) { say(t); },
+  stopSay: function () { ttsStop(); },
   speakable: function (t) { return speakable(t); },
   addTask: function (title, due) { S.tasks.push({ id: uid('t'), title: String(title).slice(0, 200), due: due || '', course: '', type: 'Task', done: false }); save(); render(); },
   setStatus: function (id, st) {

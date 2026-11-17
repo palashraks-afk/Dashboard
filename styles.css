@@ -271,3 +271,8 @@ input[type=date]::-webkit-date-and-time-value{text-align:left}
 .rate{display:inline-flex;gap:2px;vertical-align:middle}
 .star{background:none;border:0;font-size:26px;line-height:1;color:color-mix(in srgb,var(--muted) 35%,transparent);cursor:pointer;padding:2px;min-height:0}
 .star.on{color:#f5a623}
+/* voice input */
+.ai-mic{position:fixed;right:max(92px,calc(env(safe-area-inset-right,0px) + 92px));bottom:max(16px,env(safe-area-inset-bottom,0px));z-index:30;width:46px;height:46px;border:1px solid var(--edge);border-radius:50%;background:color-mix(in srgb,var(--panel) 70%,transparent);font-size:20px;cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,.2);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.btn.rec,[data-ai=mic].rec{background:#e5484d;color:#fff;border-color:transparent;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.65}}
+@media (max-width:860px){.ai-mic{bottom:max(16px,env(safe-area-inset-bottom,0px))}}

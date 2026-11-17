@@ -169,6 +169,31 @@ function send(text) {
   });
 }
 
+/* ---------- voice input: speak, see it appear live, auto-send when you stop ---------- */
+var rec = null, listening = false;
+function SRC() { return window.SpeechRecognition || window.webkitSpeechRecognition; }
+function inputEl() { return document.querySelector('#ai input[name=q]'); }
+function markMic() { var b = document.querySelector('#ai [data-ai=mic]'); if (b) { b.classList.toggle('rec', listening); b.innerHTML = listening ? '&#9632; Stop' : '&#127908;'; b.setAttribute('aria-label', listening ? 'Stop listening' : 'Speak'); } }
+function micStart() {
+  var SR = SRC(); if (!SR) { alert('Voice input is not supported in this browser. Try Safari or Chrome.'); return; }
+  if (listening) { try { rec.stop(); } catch (e) {} return; }
+  if (busy) return; if (PD.stopSay) PD.stopSay();
+  var finalText = '', gotText = false;
+  rec = new SR(); rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+  rec.onstart = function () { listening = true; markMic(); };
+  rec.onresult = function (e) {
+    var interim = ''; gotText = true;
+    for (var i = e.resultIndex; i < e.results.length; i++) { var r = e.results[i]; if (r.isFinal) finalText += r[0].transcript; else interim += r[0].transcript; }
+    var inp = inputEl(); if (inp) inp.value = (finalText + interim).trim();
+  };
+  rec.onerror = function (e) { listening = false; markMic(); if (e.error === 'not-allowed' || e.error === 'service-not-allowed') alert('The microphone is blocked. Allow it for this site in your browser settings.'); };
+  rec.onend = function () {
+    listening = false; markMic();
+    var inp = inputEl(), t = (finalText || (inp ? inp.value : '') || '').trim();
+    if (inp) inp.value = ''; if (t && gotText) send(t);
+  };
+  try { rec.start(); } catch (e) { listening = false; markMic(); }
+}
 /* ---------- rendering ---------- */
 function md(t) {
   var s = esc(t);
@@ -184,14 +209,14 @@ function ensureDom() {
   var d = document.createElement('div'); d.id = 'ai'; document.body.appendChild(d);
   d.addEventListener('click', function (e) {
     var b = e.target.closest('[data-ai]'); if (!b) return; var a = b.getAttribute('data-ai');
-    if (a === 'close') toggle(false); else if (a === 'new') { msgs = []; view = []; draw(); } else if (a === 'sugg') send(b.getAttribute('data-q')); else if (a === 'say') { var vm = view[+b.getAttribute('data-i')]; if (vm && vm.text) PD.say(vm.text); } else if (a === 'run') { var rr = b.getAttribute('data-run'), ra = b.getAttribute('data-arg'); if (rr === 'show') { toggle(false); PD.show(ra); } else if (rr === 'go') { toggle(false); PD.go(ra); } }
+    if (a === 'close') toggle(false); else if (a === 'new') { msgs = []; view = []; draw(); } else if (a === 'sugg') send(b.getAttribute('data-q')); else if (a === 'mic') micStart(); else if (a === 'micopen') { toggle(true); micStart(); } else if (a === 'say') { var vm = view[+b.getAttribute('data-i')]; if (vm && vm.text) PD.say(vm.text); } else if (a === 'run') { var rr = b.getAttribute('data-run'), ra = b.getAttribute('data-arg'); if (rr === 'show') { toggle(false); PD.show(ra); } else if (rr === 'go') { toggle(false); PD.go(ra); } }
   });
   d.addEventListener('submit', function (e) { e.preventDefault(); var i = d.querySelector('input[name=q]'); var v = i.value; i.value = ''; send(v); });
 }
 function draw() {
   ensureDom(); var d = document.getElementById('ai'), c = cfg();
   if (!document.querySelector('.shell')) { d.innerHTML = ''; return; }
-  var fab = '<button class="ai-fab" data-act="ask" aria-label="Ask the assistant">Ask</button>';
+  var fab = '<button class="ai-fab" data-act="ask" aria-label="Ask the assistant">Ask</button>' + (SRC() && !openState ? '<button class="ai-mic" data-ai="micopen" aria-label="Talk to the assistant">&#127908;</button>' : '');
   if (!openState) { d.innerHTML = fab; return; }
   var body = view.length ? view.map(function (m, vi) {
     if (m.role === 'user') return '<div class="ai-u">' + esc(m.text) + '</div>';
@@ -203,7 +228,7 @@ function draw() {
       (m.sources.length ? '<div class="ai-src">' + m.sources.map(function (s) { return '<a href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.title.slice(0, 40)) + '</a>'; }).join('') + '</div>' : '') + '</div>';
   }).join('') : '<p class="muted">Ask about deadlines, what to do next, or where to apply.</p><div class="ai-sg">' + SUGG.map(function (q) { return '<button class="btn ghost small" data-ai="sugg" data-q="' + esc(q) + '">' + esc(q) + '</button>'; }).join('') + '</div>';
   var mode = c.key ? (c.web ? 'Web search on' : 'Web search off') : 'Preview mode, no web';
-  d.innerHTML = fab + '<aside class="ai-panel" role="dialog" aria-label="Assistant"><header><b>Assistant</b><span class="muted">' + mode + '</span><span class="grow"></span><button class="x" data-ai="new" title="New chat">New</button><button class="x" data-ai="close" aria-label="Close">&times;</button></header><div class="ai-body" id="aibody">' + body + '</div><form class="ai-in"><input type="text" name="q" placeholder="Ask anything" autocomplete="off"' + (busy ? ' disabled' : '') + '><button class="btn"' + (busy ? ' disabled' : '') + '>Send</button></form></aside>';
+  d.innerHTML = fab + '<aside class="ai-panel" role="dialog" aria-label="Assistant"><header><b>Assistant</b><span class="muted">' + mode + '</span><span class="grow"></span><button class="x" data-ai="new" title="New chat">New</button><button class="x" data-ai="close" aria-label="Close">&times;</button></header><div class="ai-body" id="aibody">' + body + '</div><form class="ai-in"><input type="text" name="q" placeholder="Ask anything" autocomplete="off"' + (busy ? ' disabled' : '') + '>' + (SRC() ? '<button type="button" class="btn ghost' + (listening ? ' rec' : '') + '" data-ai="mic" aria-label="Speak">' + (listening ? '&#9632; Stop' : '&#127908;') + '</button>' : '') + '<button class="btn"' + (busy ? ' disabled' : '') + '>Send</button></form></aside>';
   var bd = document.getElementById('aibody'); if (bd) bd.scrollTop = bd.scrollHeight;
   var inp = d.querySelector('input[name=q]'); if (inp && !busy) inp.focus();
 }
