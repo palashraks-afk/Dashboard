@@ -333,3 +333,47 @@ main.enter .rows>*:nth-child(1){animation-delay:.08s}main.enter .rows>*:nth-chil
 .card .list li .stars{display:inline-block;margin-left:6px;vertical-align:middle}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 .hero{background-image:radial-gradient(300px circle at var(--mx,-400px) var(--my,-400px),rgba(255,255,255,.3),transparent 62%),linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,0) 50%),linear-gradient(135deg,color-mix(in srgb,var(--accent) 88%,#fff),color-mix(in srgb,var(--accent) 60%,#7b5cff))}
+
+/* v7: ring fix, toggle, chips, progress, checklist, Classroom import, focus timer */
+.hero{align-items:center;gap:18px}
+.hero>div:first-child{min-width:0;flex:1 1 220px}
+.hero-r{display:flex;flex-direction:column;align-items:center;gap:10px;flex:0 0 auto}
+.ring{width:92px;height:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding-top:2px}
+.ring b{font-size:26px;line-height:1;position:static}
+.ring small{margin:2px 0 0;font-size:11px;line-height:1;position:static;display:block}
+.ring.now b{font-size:17px;letter-spacing:.01em}
+.hero .row{justify-content:center;flex-wrap:nowrap}
+.hero .btn.small{white-space:nowrap}
+@media (max-width:860px){.hero{flex-direction:column;align-items:stretch}.hero-r{flex-direction:row;justify-content:space-between;width:100%}.ring{width:80px;height:80px}.ring b{font-size:22px}}
+/* time / importance toggle */
+.seg{display:inline-flex;padding:3px;border-radius:999px;background:color-mix(in srgb,var(--panel) 60%,transparent);border:1px solid var(--edge);box-shadow:inset 0 1px 2px var(--drop);position:relative}
+.seg button{border:0;background:transparent;padding:6px 16px;border-radius:999px;font-weight:600;font-size:13px;color:var(--muted);cursor:pointer;min-height:0;transition:background-color .25s var(--ease),color .2s,box-shadow .25s}
+.seg button.on{background:var(--accent);color:var(--accent-fg);box-shadow:0 2px 10px color-mix(in srgb,var(--accent) 40%,transparent)}
+/* status chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}
+.chip2{border:1px solid var(--edge);background:color-mix(in srgb,var(--panel) 55%,transparent);border-radius:999px;padding:4px 12px;font-size:12.5px;cursor:pointer;color:var(--fg);min-height:0}
+.chip2 b{color:var(--muted);font-weight:600;margin-left:3px}
+.chip2.on{background:var(--accent);color:var(--accent-fg);border-color:transparent}.chip2.on b{color:inherit;opacity:.85}
+/* row progress */
+.bar{height:4px;border-radius:99px;background:var(--line);margin-top:6px;overflow:hidden;max-width:160px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 60%,#34c8a0));border-radius:99px;transition:width .4s var(--ease)}
+/* checklist */
+.steps.chk{list-style:none;padding-left:0}
+.steps.chk label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.steps.chk input{margin-top:4px;width:18px;height:18px;accent-color:var(--accent);flex:none}
+.steps.chk input:checked+span{text-decoration:line-through;opacity:.55}
+/* Classroom import */
+.cls-list{display:grid;gap:8px}
+.cls-r{display:grid;grid-template-columns:auto minmax(0,2fr) minmax(0,1fr) auto auto;gap:8px;align-items:center}
+.cls-r.dup{opacity:.55}
+.cls-r input[type=text],.cls-r input[type=date]{width:100%}
+.cls-r input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
+.ok-msg{color:var(--good);font-weight:600;margin:0 0 8px}
+@media (max-width:860px){.cls-r{grid-template-columns:auto minmax(0,1fr)}.cls-r input[type=text]:nth-of-type(2),.cls-r input[type=date],.cls-r .tag{grid-column:2}}
+/* focus timer */
+.foc{display:flex;flex-wrap:wrap;gap:18px 28px;align-items:center}
+.foc-t{font-family:var(--font-display);font-size:clamp(44px,9vw,64px);line-height:1;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.foc-r{display:grid;gap:10px;flex:1 1 260px}
+.foc-s{gap:16px;color:var(--muted);font-size:13px}.foc-s b{color:var(--fg);font-size:18px}
+.btn.ghost.on{background:var(--accent-soft);border-color:var(--accent)}
+@media (max-width:860px){.hero>div:first-child{flex:0 0 auto}}

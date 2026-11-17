@@ -44,7 +44,7 @@ function gcal(title, iso, details) {
 /* ---------- state ---------- */
 function defaultState() {
   return {
-    profile: { name: 'Palash', pinHash: '' }, status: {}, notes: {}, stars: {},
+    profile: { name: 'Palash', pinHash: '' }, status: {}, notes: {}, stars: {}, checks: {}, focus: {},
     tasks: SEED.tasks.map(function (t) { return { id: t.id, title: t.title, due: t.due, course: t.course, type: t.type, info: t.info, link: t.link, done: false }; }),
     events: [
       { id: 'e3', title: 'SAT prep', start: '17:30', end: '18:30', cat: 'sat', date: '2026-11-17' },
@@ -203,7 +203,7 @@ function deadlineRows(dl) {
       var it = x.id ? findItem(x.id) : null, st = '';
       if (it && it.list) st = sel(x.id, it.list, S.status[x.id] || it.list[0]);
       else if (x.task) st = '<span class="muted">Task</span>';
-      var o2 = { id: x.id || 'sat', iso: x.iso, name: shortTxt(x.title, 42), sub: x.kind, next: it && it.todo[0] ? shortTxt(it.todo[0], 90) : '', st: st, stars: it && it.list ? starsOf(x.id) : 0 };
+      var o2 = { id: x.id || 'sat', iso: x.iso, name: shortTxt(x.title, 42), sub: x.kind, next: it && it.todo[0] ? shortTxt(it.todo[0], 90) : '', st: st, stars: it && it.list ? starsOf(x.id) : 0, prog: x.id ? progOf(x.id) : 0 };
       return x.id ? dRow(o2) : dRow(o2).replace('data-act="detail" data-id="sat"', 'data-nav="sat"');
     }).join('') + '</div>';
   });
@@ -248,8 +248,13 @@ function starsOf(id) {
 }
 function starsHtml(n) { return '<span class="stars" aria-label="Importance ' + n + ' of 5">' + '\u2605'.repeat(n) + '<i>' + '\u2605'.repeat(5 - n) + '</i></span>'; }
 function starPicker(id) { var n = starsOf(id), o = '<span class="rate">'; for (var i = 1; i <= 5; i++) o += '<button type="button" class="star' + (i <= n ? ' on' : '') + '" data-act="setstar" data-id="' + id + '" data-v="' + i + '" aria-label="' + i + ' stars">\u2605</button>'; return o + '</span>'; }
-function byStars(a, b, ka, kb) { var d = starsOf(b.id) - starsOf(a.id); return d || (ka < kb ? -1 : ka > kb ? 1 : 0); }function dRow(o) {
-  return '<div class="row2 cols click ' + (o.closed ? 'dim' : (o.approx ? 'u-later' : urg(o.iso))) + '" data-act="detail" data-id="' + o.id + '" tabindex="0"><div>' + dueChip(o.iso, o.dateText, o.approx, o.closed) + '</div><div class="c-name"><b>' + esc(o.name) + '</b>' + (o.stars ? starsHtml(o.stars) : '') + '<small>' + esc(o.sub || '') + '</small></div><div class="c-next">' + esc(o.next || '') + '</div><div class="c-st">' + (o.st || '') + '</div></div>';
+function byStars(a, b, ka, kb) { var d = starsOf(b.id) - starsOf(a.id); return d || (ka < kb ? -1 : ka > kb ? 1 : 0); }function segHtml() { return '<div class="seg" role="group" aria-label="Order by"><button data-act="sortset" data-id="date" class="' + (F.sort !== 'rank' ? 'on' : '') + '">Time</button><button data-act="sortset" data-id="rank" class="' + (F.sort === 'rank' ? 'on' : '') + '">Importance</button></div>'; }
+function chipsHtml(list, cnt, cur, act) {
+  var total = 0; list.forEach(function (k) { total += cnt[k] || 0; });
+  return '<div class="chips"><button class="chip2' + (!cur ? ' on' : '') + '" data-act="' + act + '" data-id="">All <b>' + total + '</b></button>' + list.filter(function (k) { return cnt[k]; }).map(function (k) { return '<button class="chip2' + (cur === k ? ' on' : '') + '" data-act="' + act + '" data-id="' + esc(k) + '">' + esc(k) + ' <b>' + cnt[k] + '</b></button>'; }).join('') + '</div>';
+}
+function progOf(id) { var it = findItem(id), c = S.checks && S.checks[id]; if (!it || !it.todo.length || !c) return 0; var n = 0; it.todo.forEach(function (x, i) { if (c[i]) n++; }); return Math.round(100 * n / it.todo.length); }function dRow(o) {
+  return '<div class="row2 cols click ' + (o.closed ? 'dim' : (o.approx ? 'u-later' : urg(o.iso))) + '" data-act="detail" data-id="' + o.id + '" tabindex="0"><div>' + dueChip(o.iso, o.dateText, o.approx, o.closed) + '</div><div class="c-name"><b>' + esc(o.name) + '</b>' + (o.stars ? starsHtml(o.stars) : '') + '<small>' + esc(o.sub || '') + '</small>' + (o.prog ? '<div class="bar" title="' + o.prog + '% of steps done"><i style="width:' + o.prog + '%"></i></div>' : '') + '</div><div class="c-next">' + esc(o.next || '') + '</div><div class="c-st">' + (o.st || '') + '</div></div>';
 }
 function firstStep(t, n) { var a = sentences(t)[0] || ''; return shortTxt(a, n || 80); }
 function shortDate(t) { return String(t || '').replace(/,? 20(\d\d)/, ' \u2019$1').replace(/ to /, ' to '); }
@@ -274,7 +279,7 @@ function showDetail(id) {
     '<span class="kicker">' + it.kind + '</span><h2>' + esc(it.title) + '</h2>' + (it.sub ? '<p class="muted">' + esc(it.sub) + '</p>' : '') +
     '<p><b>' + esc(it.dateText || '') + '</b> ' + (it.iso && it.list && !/approx|TBA|not posted/i.test(it.dateText || '') ? leftTxt(it.iso) : '') + '</p>' +
     (it.list ? '<p>' + sel(id, it.list, st) + '</p><p class="muted">Importance ' + starPicker(id) + '</p>' : '') +
-    (it.todo.length ? '<h3>What to do</h3><ul class="steps">' + it.todo.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') +
+    (it.todo.length ? '<h3>What to do <span class="muted">' + progOf(id) + '%</span></h3><ul class="steps chk">' + it.todo.map(function (x, i) { return '<li><label><input type="checkbox" data-act="chk" data-id="' + id + '" data-i="' + i + '"' + ((S.checks[id] || [])[i] ? ' checked' : '') + '> <span>' + esc(x) + '</span></label></li>'; }).join('') + '</ul>' : '') +
     (it.facts.filter(Boolean).length ? '<h3>Good to know</h3><ul class="steps">' + it.facts.filter(Boolean).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') +
     '<div class="row"><button class="btn ghost small" data-act="readitem" data-id="' + id + '">&#9658; Listen</button>' + (it.link ? openBtn(it.link, 'Open official page') : '') + '<a class="btn ghost small" target="_blank" rel="noopener" href="https://www.google.com/search?q=' + q + '">Search</a>' + (it.iso ? '<a class="btn ghost small" target="_blank" rel="noopener" href="' + gcal(it.title, it.iso, it.kind) + '">+ Calendar</a>' : '') + '<button class="btn ghost small" data-act="askabout" data-id="' + id + '">Ask assistant</button></div>' +
     (it.task ? '' : '<h3>Your notes</h3><textarea data-act="note" data-id="' + id + '" placeholder="Notes">' + esc(S.notes[id] || '') + '</textarea>') + '</div>';
@@ -285,10 +290,10 @@ function vComps() {
   var rows = SEED.competitions.slice();
   function ck(c) { return ((S.status[c.id] || c.status) === 'Closed' ? 'zz' : '') + (c.iso || '9999'); }
   rows.sort(function (a, b) { return F.sort === 'rank' ? byStars(a, b, ck(a), ck(b)) : (ck(a) < ck(b) ? -1 : ck(a) > ck(b) ? 1 : 0); });
-  var o = '<div class="hd"><h1>Competitions</h1><label class="muted">Sort <select data-act="sort"><option value="date"' + (F.sort !== 'rank' ? ' selected' : '') + '>Closest deadline</option><option value="rank"' + (F.sort === 'rank' ? ' selected' : '') + '>Importance (stars)</option></select></label></div>' + colHead('Due', 'Competition', 'What to do next', 'Status') + '<div class="rows">';
+  var cnt = {}; SEED.competitions.forEach(function (c) { var s0 = S.status[c.id] || c.status || 'Not started'; cnt[s0] = (cnt[s0] || 0) + 1; }); var o = '<div class="hd"><h1>Competitions</h1>' + segHtml() + '</div>' + chipsHtml(CST, cnt, F.cst, 'chipc') + colHead('Due', 'Competition', 'What to do next', 'Status') + '<div class="rows">';
   rows.forEach(function (c) {
-    var st = S.status[c.id] || c.status || 'Not started';
-    var cl = st === 'Closed'; o += dRow({ id: c.id, iso: c.iso, approx: c.approx, closed: cl, dateText: shortDate(c.dateText), name: c.name, stars: starsOf(c.id), sub: shortTxt(c.sub, 40), next: firstStep(c.needs, 90), st: sel(c.id, CST, st) });
+    var st = S.status[c.id] || c.status || 'Not started'; if (F.cst && st !== F.cst) return;
+    var cl = st === 'Closed'; o += dRow({ id: c.id, iso: c.iso, approx: c.approx, closed: cl, dateText: shortDate(c.dateText), name: c.name, stars: starsOf(c.id), prog: progOf(c.id), sub: shortTxt(c.sub, 40), next: firstStep(c.needs, 90), st: sel(c.id, CST, st) });
   });
   return o + '</div>';
 }
@@ -309,28 +314,105 @@ function progTable() {
   var o = colHead('Due', 'Program', 'What to do next', 'Status') + '<div class="rows">';
   rows.forEach(function (p) {
     var st = S.status[p.id] || p.status || 'Not started';
-    o += dRow({ id: p.id, iso: p.iso, approx: p.approx, closed: st === 'Closed', dateText: shortDate(p.dateText || p.date), name: shortTxt(p.name, 34), stars: starsOf(p.id), sub: p.type + ' · ' + shortTxt(p.get, 28), next: firstStep(p.next, 90), st: sel(p.id, PST, st) });
+    o += dRow({ id: p.id, iso: p.iso, approx: p.approx, closed: st === 'Closed', dateText: shortDate(p.dateText || p.date), name: shortTxt(p.name, 34), stars: starsOf(p.id), prog: progOf(p.id), sub: p.type + ' · ' + shortTxt(p.get, 28), next: firstStep(p.next, 90), st: sel(p.id, PST, st) });
   });
   return o + '</div><p class="muted">' + rows.length + ' of ' + SEED.programs.length + ' shown, closest deadline first. Dates marked approx are projected from 2026.</p>';
 }
 function opts(list, cur) { return '<option value="">All</option>' + list.map(function (o) { return '<option' + (o === cur ? ' selected' : '') + '>' + o + '</option>'; }).join(''); }
 function uniq(f) { var s = {}; SEED.programs.forEach(function (p) { s[p[f]] = 1; }); return Object.keys(s); }
 function vProgs() {
-  var o = '<div class="hd"><h1>Programs &amp; Internships</h1></div>';
-  o += '<div class="filters"><input type="search" data-act="q" placeholder="Search" value="' + esc(F.q) + '"><select data-act="fcat">' + opts(uniq('cat'), F.cat) + '</select><select data-act="ftype">' + opts(uniq('type'), F.type) + '</select><select data-act="fwin">' + opts(uniq('window'), F.win) + '</select><select data-act="fst">' + opts(PST, F.st) + '</select><label class="muted">Sort <select data-act="sort"><option value="date"' + (F.sort !== 'rank' ? ' selected' : '') + '>Closest deadline</option><option value="rank"' + (F.sort === 'rank' ? ' selected' : '') + '>Importance (stars)</option></select></label><label class="muted"><input type="checkbox" data-act="hideskip"' + (F.hideSkip ? ' checked' : '') + '> hide skipped</label></div>';
+  var pcnt = {}; SEED.programs.forEach(function (p) { var s0 = S.status[p.id] || p.status || 'Not started'; pcnt[s0] = (pcnt[s0] || 0) + 1; }); var o = '<div class="hd"><h1>Programs &amp; Internships</h1>' + segHtml() + '</div>' + chipsHtml(PST, pcnt, F.st, 'chipp');
+  o += '<div class="filters"><input type="search" data-act="q" placeholder="Search" value="' + esc(F.q) + '"><select data-act="fcat">' + opts(uniq('cat'), F.cat) + '</select><select data-act="ftype">' + opts(uniq('type'), F.type) + '</select><select data-act="fwin">' + opts(uniq('window'), F.win) + '</select><select data-act="fst">' + opts(PST, F.st) + '</select><label class="muted"><input type="checkbox" data-act="hideskip"' + (F.hideSkip ? ' checked' : '') + '> hide skipped</label></div>';
   o += '<div id="progTable">' + progTable() + '</div>';
   o += '<details><summary>More programs from your lists (' + SEED.extra.length + ')</summary><p class="muted">Mostly 2026 dates. Check each site for 2027 deadlines.</p><div class="wrap"><table style="min-width:760px"><thead><tr><th>Program</th><th>Cost</th><th>Dates listed</th><th>Status</th></tr></thead><tbody>';
   SEED.extra.forEach(function (e) { o += '<tr><td class="nm">' + esc(e.name) + '<small>' + esc(e.what) + '</small></td><td>' + esc(e.cost) + '</td><td>' + esc(e.dates) + '</td><td>' + sel(e.id, PST, S.status[e.id] || 'Not started') + '</td></tr>'; });
   return o + '</tbody></table></div></details>';
 }
 
+var FOC = { run: false, mode: 'focus', len: 25, left: 1500, end: 0, tm: null };
+function focFmt(s) { return pad(Math.floor(s / 60)) + ':' + pad(s % 60); }
+function focTick() { if (!FOC.run) return; FOC.left = Math.max(0, Math.round((FOC.end - Date.now()) / 1000)); var el = document.getElementById('focT'); if (el) el.textContent = focFmt(FOC.left); if (FOC.left <= 0) focDone(); }
+function focDone() {
+  clearInterval(FOC.tm); FOC.run = false;
+  if (FOC.mode === 'focus') { S.focus = S.focus || {}; var k0 = todayIso(); S.focus[k0] = (S.focus[k0] || 0) + FOC.len; save(); }
+  try { if ('Notification' in window && Notification.permission === 'granted') new Notification(FOC.mode === 'focus' ? 'Focus session done. Take a break.' : 'Break over. Ready to focus?'); } catch (e) {}
+  FOC.mode = FOC.mode === 'focus' ? 'break' : 'focus'; FOC.len = FOC.mode === 'focus' ? 25 : 5; FOC.left = FOC.len * 60; render();
+}
+function focStats() {
+  var f = S.focus || {}, wk = 0, streak = 0, d = new Date();
+  for (var i = 0; i < 7; i++) { var x = new Date(); x.setDate(x.getDate() - i); wk += f[isoOf(x)] || 0; }
+  if (!f[isoOf(d)]) d.setDate(d.getDate() - 1);
+  while (f[isoOf(d)]) { streak++; d.setDate(d.getDate() - 1); }
+  return { today: f[todayIso()] || 0, wk: wk, streak: streak };
+}
+function focusCard() {
+  var st = focStats();
+  return '<h2>Focus timer</h2><div class="card foc"><div class="foc-l"><div class="foc-t" id="focT">' + focFmt(FOC.left) + '</div><div class="muted">' + (FOC.mode === 'focus' ? 'Focus session' : 'Break') + '</div></div><div class="foc-r"><div class="row"><button class="btn" data-act="focstart">' + (FOC.run ? 'Pause' : 'Start') + '</button><button class="btn ghost" data-act="focreset">Reset</button><button class="btn ghost small' + (FOC.mode === 'focus' && FOC.len === 25 ? ' on' : '') + '" data-act="focmode" data-id="25">25 min</button><button class="btn ghost small' + (FOC.mode === 'focus' && FOC.len === 50 ? ' on' : '') + '" data-act="focmode" data-id="50">50 min</button><button class="btn ghost small' + (FOC.mode === 'break' ? ' on' : '') + '" data-act="focmode" data-id="5">Break</button></div><div class="row foc-s"><span><b>' + st.today + '</b> min today</span><span><b>' + st.wk + '</b> min this week</span><span><b>' + st.streak + '</b> day streak</span></div></div></div>';
+}
+var vSat0 = vSat;
+vSat = function () { var h = vSat0(), i = h.indexOf('</div>') + 6; return h.slice(0, i) + focusCard() + h.slice(i); };
+/* ---------- Google Classroom import (no API: paste what the page shows) ---------- */
+var CLS = { items: [], gone: [], msg: '' };
+var CLS_NOISE = /^(classroom|to-?do|assigned|missing|done|all classes|review|work|this week|next week|later|earlier|past due|no due date|today|tomorrow|upcoming|view|filter|sort|menu|settings|turned in|marked as done|returned|graded|open|archived|todo|assigned work|\d+\s+(assigned|missing|done))$/i;
+var COURSE_ALIAS = [['physics c', 'AP Physics C'], ['calc', 'AP Calculus BC'], ['chem', 'AP Chemistry'], ['lang', 'AP Lang'], ['apush', 'AP US History'], ['us history', 'AP US History'], ['history', 'AP US History'], ['physics', 'Physics Honors']];
+function matchCourse(line) {
+  var l = String(line || '').toLowerCase(), i;
+  for (i = 0; i < SEED.courses.length; i++) if (l.indexOf(SEED.courses[i].toLowerCase()) >= 0) return SEED.courses[i];
+  for (i = 0; i < COURSE_ALIAS.length; i++) if (l.indexOf(COURSE_ALIAS[i][0]) >= 0) return COURSE_ALIAS[i][1];
+  return '';
+}
+function relDate(w) {
+  var d = new Date(); d.setHours(0, 0, 0, 0); w = w.toLowerCase();
+  if (w === 'today') return isoOf(d); if (w === 'tomorrow') { d.setDate(d.getDate() + 1); return isoOf(d); } if (w === 'yesterday') { d.setDate(d.getDate() - 1); return isoOf(d); }
+  var i = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].indexOf(w.slice(0, 3)); if (i < 0) return '';
+  var add = (i - d.getDay() + 7) % 7; d.setDate(d.getDate() + (add || 7)); return isoOf(d);
+}
+function parseDueLine(ln) {
+  var m = /^due[:\s]+(.*)$/i.exec(ln); if (!m) return null;
+  var rest = m[1].trim(), tm = /(\d{1,2})(?::(\d\d))?\s*([ap])\.?m\.?/i.exec(rest), iso = '';
+  var mo = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{1,2})(?:,?\s*(20\d\d))?/i.exec(rest), M = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+  if (mo) { var now = new Date(), y = mo[3] ? +mo[3] : now.getFullYear(), dt = new Date(y, M[mo[1].toLowerCase()] - 1, +mo[2]); if (!mo[3] && dt < new Date(now.getFullYear(), now.getMonth(), now.getDate() - 60)) dt = new Date(y + 1, dt.getMonth(), dt.getDate()); iso = isoOf(dt); }
+  else { var w = /^(today|tomorrow|yesterday|sun|mon|tue|wed|thu|fri|sat)[a-z]*/i.exec(rest); if (w) iso = relDate(w[1]); else { var sl = /(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/.exec(rest); if (sl) { var yy = sl[3] ? (+sl[3] < 100 ? 2000 + +sl[3] : +sl[3]) : new Date().getFullYear(); iso = isoOf(new Date(yy, +sl[1] - 1, +sl[2])); } } }
+  return { iso: iso, time: tm ? (+tm[1]) + ':' + (tm[2] || '00') + ' ' + tm[3].toUpperCase() + 'M' : '' };
+}
+function parseClassroom(text) {
+  var lines = String(text || '').split(/\r?\n/).map(function (x) { return x.replace(/\s+/g, ' ').trim(); }).filter(Boolean), items = [];
+  lines.forEach(function (ln, i) {
+    var due = parseDueLine(ln); if (!due) return;
+    var prev = []; for (var j = i - 1; j >= 0 && prev.length < 2; j--) { if (parseDueLine(lines[j]) || CLS_NOISE.test(lines[j])) break; prev.push(lines[j]); }
+    if (!prev.length) return;
+    var title = prev[prev.length - 1], course = prev.length > 1 ? prev[0] : '';
+    if (prev.length > 1 && matchCourse(title) && !matchCourse(course)) { var sw = title; title = course; course = sw; }
+    items.push({ title: title.slice(0, 120), course: matchCourse(course) || course.slice(0, 40), due: due.iso, info: due.time ? 'Due ' + due.time : '' });
+  });
+  if (!items.length) items = parsePaste(text, '').map(function (x) { return { title: x.title, course: '', due: x.due, info: '' }; });
+  return items;
+}
+function sameTask(t, x) { return String(t.title).toLowerCase() === String(x.title).toLowerCase() && (t.due || '') === (x.due || ''); }
+function clsStart(text) {
+  var items = parseClassroom(text);
+  items.forEach(function (x) { x.dup = S.tasks.some(function (t) { return sameTask(t, x); }); x.on = !x.dup; });
+  CLS.items = items; CLS.msg = items.length ? '' : 'I could not find any assignments in that text. Copy the whole To-do page and try again.';
+  CLS.gone = items.length ? S.tasks.filter(function (t) { return !t.done && t.type === 'Classroom' && !items.some(function (x) { return sameTask(t, x); }); }) : [];
+}
+function clsPanel() {
+  var o = '<details style="margin-top:12px"' + (CLS.items.length || CLS.msg ? ' open' : '') + '><summary>Import from Google Classroom</summary><div class="card">';
+  if (CLS.msg) o += '<p class="' + (CLS.items.length ? 'ok-msg' : 'err') + '">' + esc(CLS.msg) + '</p>';
+  if (!CLS.items.length) {
+    return o + '<ol class="steps"><li>On your school computer or phone, open <b>classroom.google.com</b> and tap <b>To-do</b>, then <b>Assigned</b>.</li><li>Select everything (Ctrl+A, or Cmd+A) and copy (Ctrl+C, or Cmd+C).</li><li>Paste it below. You get a preview to fix before anything is added.</li></ol><form data-form="clsparse" style="display:grid;gap:8px"><textarea class="paste" name="txt" required placeholder="Paste the Classroom To-do page here"></textarea><div class="row"><button class="btn">Read it</button><span class="muted">Works without any Google access. Nothing leaves this browser except your own sync.</span></div></form></div></details>';
+  }
+  o += '<div class="cls-list">' + CLS.items.map(function (x, i) { return '<div class="cls-r' + (x.dup ? ' dup' : '') + '"><input type="checkbox" data-act="clspick" data-i="' + i + '"' + (x.on ? ' checked' : '') + (x.dup ? ' disabled' : '') + ' aria-label="Include"><input type="text" data-act="clstitle" data-i="' + i + '" value="' + esc(x.title) + '" aria-label="Title"><input type="text" data-act="clscourse" data-i="' + i + '" value="' + esc(x.course) + '" list="cls-courses" placeholder="Class" aria-label="Class"><input type="date" data-act="clsdue" data-i="' + i + '" value="' + esc(x.due) + '" aria-label="Due date">' + (x.dup ? '<span class="tag">already added</span>' : '') + '</div>'; }).join('') + '</div><datalist id="cls-courses">' + SEED.courses.map(function (c) { return '<option value="' + esc(c) + '">'; }).join('') + '</datalist>';
+  var n = CLS.items.filter(function (x) { return x.on; }).length;
+  o += '<div class="row" style="margin-top:10px"><button class="btn" data-act="clsadd">Add ' + n + ' selected</button>' + (CLS.gone.length ? '<button class="btn ghost" data-act="clsgone">Check off ' + CLS.gone.length + ' earlier (not in this list)</button>' : '') + '<button class="btn ghost" data-act="clsclear">Start over</button></div>' + (CLS.gone.length ? '<p class="muted">Classroom tasks you imported before that are missing now are probably turned in.</p>' : '') + '</div></details>';
+  return o;
+}
 function vSchool() {
   var tasks = S.tasks.slice().sort(function (a, b) { return (a.due || '9999') < (b.due || '9999') ? -1 : 1; });
   var open = tasks.filter(function (t) { return !t.done; }), done = tasks.filter(function (t) { return t.done; });
   var h2 = '<div class="hd"><h1>School</h1><span class="muted">Import a school calendar on the Connect tab</span></div>';
   h2 += '<div class="row" style="margin-top:10px">' + SEED.courses.map(function (c) { return '<span class="tag">' + esc(c) + '</span>'; }).join('') + '</div>';
   h2 += '<div class="card" style="margin-top:14px"><form data-form="task" class="row"><input type="text" name="title" placeholder="Assignment or reminder" required style="flex:1;min-width:160px"><select name="course"><option value="">No class</option>' + SEED.courses.concat(['Science Fair', 'Civic', 'SAT', 'Other']).map(function (c) { return '<option>' + esc(c) + '</option>'; }).join('') + '</select><select name="type"><option>Assignment</option><option>Test</option><option>Project</option><option>Form</option><option>Reminder</option></select><input type="date" name="due"><button class="btn">Add</button></form></div>';
-  h2 += '<details style="margin-top:12px"><summary>Paste assignments from Google Classroom</summary><div class="card"><p class="muted">Your school locked the Google account, so copy the to-do list from Classroom in your browser and paste it here. One assignment per line. Dates like "Nov 20" or "11/20" are picked up.</p><form data-form="paste" style="display:grid;gap:8px"><textarea class="paste" name="txt" placeholder="AP Lang essay draft - due Nov 20\nAP Chem lab report 11/22"></textarea><div class="row"><select name="course"><option value="">No class</option>' + SEED.courses.map(function (c) { return '<option>' + esc(c) + '</option>'; }).join('') + '</select><button class="btn">Add them</button></div></form></div></details>';
+  h2 += clsPanel();
   h2 += '<h2>Open (' + open.length + ')</h2><div class="card"><ul class="list">' + (open.length ? open.map(taskLi).join('') : '<li class="muted">All clear.</li>') + '</ul></div>';
   h2 += '<details><summary>Done (' + done.length + ')</summary><ul class="list">' + done.map(taskLi).join('') + '</ul></details>';
   return h2;
@@ -499,7 +581,7 @@ function countUp() {
 }
 function ringHtml(n) {
   var pct = Math.max(6, Math.round(100 * (1 - Math.min(Math.max(n, 0), 30) / 30)));
-  return '<div class="ring"><svg viewBox="0 0 80 80" aria-hidden="true"><circle class="rb" cx="40" cy="40" r="34"/><circle class="rf" cx="40" cy="40" r="34" pathLength="100" stroke-dasharray="' + pct + ' 100"/></svg><b>' + (n === 0 ? 'Today' : n) + '</b><small>' + (n === 0 ? '' : n === 1 ? 'day' : 'days') + '</small></div>';
+  return '<div class="ring' + (n === 0 ? ' now' : '') + '"><svg viewBox="0 0 80 80" aria-hidden="true"><circle class="rb" cx="40" cy="40" r="34"/><circle class="rf" cx="40" cy="40" r="34" pathLength="100" stroke-dasharray="' + pct + ' 100"/></svg><b>' + (n === 0 ? 'Today' : n) + '</b><small>' + (n === 0 ? '' : n === 1 ? 'day' : 'days') + '</small></div>';
 }
 function strip14(dl) {
   var o = '<h2>Next 14 days</h2><div class="card"><div class="strip">';
@@ -605,6 +687,15 @@ document.addEventListener('click', function (e) {
   if (a === 'deltask') { S.tasks = S.tasks.filter(function (t) { return t.id !== id; }); save(); render(); }
   else if (a === 'delevent') { S.events = S.events.filter(function (t) { return t.id !== id; }); save(); render(); }
   else if (a === 'setstar') { S.stars = S.stars || {}; S.stars[id] = +b.getAttribute('data-v'); save(); render(); showDetail(id); }
+  else if (a === 'sortset') { F.sort = id; render(); }
+  else if (a === 'chipc') { F.cst = id; render(); }
+  else if (a === 'chipp') { F.st = id; render(); }
+  else if (a === 'focstart') { if (FOC.run) { FOC.run = false; clearInterval(FOC.tm); } else { FOC.run = true; FOC.end = Date.now() + FOC.left * 1000; clearInterval(FOC.tm); FOC.tm = setInterval(focTick, 500); } render(); }
+  else if (a === 'focreset') { FOC.run = false; clearInterval(FOC.tm); FOC.left = FOC.len * 60; render(); }
+  else if (a === 'focmode') { FOC.run = false; clearInterval(FOC.tm); FOC.mode = id === '5' ? 'break' : 'focus'; FOC.len = +id; FOC.left = FOC.len * 60; render(); }
+  else if (a === 'clsadd') { var cn = 0; CLS.items.forEach(function (x) { if (x.on && x.title.trim()) { S.tasks.push({ id: uid('t'), title: x.title.trim(), due: x.due || '', course: x.course || '', type: 'Classroom', info: x.info || '', done: false }); cn++; } }); CLS.items = []; CLS.gone = []; CLS.msg = cn + ' assignment' + (cn === 1 ? '' : 's') + ' added.'; save(); render(); }
+  else if (a === 'clsgone') { CLS.gone.forEach(function (t) { t.done = true; }); CLS.gone = []; save(); render(); }
+  else if (a === 'clsclear') { CLS.items = []; CLS.gone = []; CLS.msg = ''; render(); }
   else if (a === 'readday') { say(dayBrief()); }
   else if (a === 'readitem') { say(itemSpeech(id)); }
   else if (a === 'ttsstop') { ttsStop(); }
@@ -643,6 +734,11 @@ document.addEventListener('change', function (e) {
   else if (a === 'note') { S.notes[id] = t.value; save(); }
   else if (a === 'plan') { S.sat.plan[id] = t.checked; save(); }
   else if (a === 'sort') { F.sort = t.value; render(); }
+  else if (a === 'clspick') { CLS.items[+t.getAttribute('data-i')].on = t.checked; render(); }
+  else if (a === 'clstitle') { CLS.items[+t.getAttribute('data-i')].title = t.value; }
+  else if (a === 'clscourse') { CLS.items[+t.getAttribute('data-i')].course = t.value; }
+  else if (a === 'clsdue') { var cx = CLS.items[+t.getAttribute('data-i')]; cx.due = t.value; cx.dup = S.tasks.some(function (q) { return sameTask(q, cx); }); }
+  else if (a === 'chk') { S.checks = S.checks || {}; var ca = S.checks[id] || (S.checks[id] = []); ca[+t.getAttribute('data-i')] = t.checked; save(); var hh = t.closest('.m-box') && t.closest('.m-box').querySelector('h3 .muted'); if (hh) hh.textContent = progOf(id) + '%'; render(); }
   else if (a === 'ttsvoice') { var tc = ttsCfg(); tc.voice = t.value; lsSet(TTSKEY, JSON.stringify(tc)); }
   else if (a === 'ttsrate') { var tc2 = ttsCfg(); tc2.rate = +t.value; lsSet(TTSKEY, JSON.stringify(tc2)); var rv = document.getElementById('ttsrv'); if (rv) rv.textContent = t.value + 'x'; }
   else if (a === 'fcat') { F.cat = t.value; render(); } else if (a === 'ftype') { F.type = t.value; render(); } else if (a === 'fwin') { F.win = t.value; render(); } else if (a === 'fst') { F.st = t.value; render(); }
@@ -659,6 +755,7 @@ document.addEventListener('submit', function (e) {
   else if (k === 'sat') { var e1 = +v.ebrw || 0, m1 = +v.math || 0; if (!e1 || !m1) return; S.sat.tests.push({ id: uid('s'), label: v.label, ebrw: e1, math: m1, total: e1 + m1, note: v.note || '' }); save(); render(); }
   else if (k === 'ai') { AI.saveCfg({ key: (v.key || '').trim(), model: (v.model || '').trim() || 'claude-sonnet-5-5', web: !!f.querySelector('[name=web]').checked }); alert('Assistant saved.'); render(); }
   else if (k === 'fb') { lsSet(CFGKEY, JSON.stringify({ url: v.url.trim(), key: v.key.trim() })); alert('Saved. Sign out and sign in to link your account.'); render(); }
+  else if (k === 'clsparse') { clsStart(v.txt); render(); }
   else if (k === 'paste') { var ps = parsePaste(v.txt, v.course); ps.forEach(function (x) { if (!S.tasks.some(function (t) { return t.title === x.title && t.due === x.due; })) S.tasks.push({ id: uid('t'), title: x.title, due: x.due, course: x.course, type: 'Assignment', done: false }); }); save(); alert(ps.length + ' added.'); render(); }
   else if (k === 'setpin') { S.profile.name = v.name || 'Palash'; if (v.pin && v.pin.length >= 4) { hashPin(v.pin).then(function (h) { S.profile.pinHash = h; save(); enter(); }); } else { var er = document.getElementById('err'); if (er) er.textContent = 'Use at least 4 digits, or continue without a PIN.'; } }
   else if (k === 'pin') { hashPin(v.pin).then(function (h) { if (h === S.profile.pinHash) { if (cloudOn() && session()) { setSync('Loading...'); cloudPull().then(function () { enter(); }).catch(function () { enter(); }); } else enter(); } else { var er2 = document.getElementById('err'); if (er2) er2.textContent = 'Wrong PIN.'; } }); }
