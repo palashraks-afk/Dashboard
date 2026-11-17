@@ -7,7 +7,7 @@ const read = f => fs.readFileSync(path.join(root, f), 'utf8');
 const offline = process.argv.includes('--offline');
 
 async function remoteState() {
-  const sb = (/SEED\.supabase\s*=\s*\{url:'([^']+)',key:'([^']+)'\}/.exec(read('data.js')) || []);
+  const sb = (/SEED\.supabase\s*=\s*\{url:['"]([^'"]+)['"],key:['"]([^'"]+)['"]\}/.exec(read('data.js')) || []);
   const email = (/SOLMAIL = '([^']+)'/.exec(read('app.js')) || [])[1], pw = (/SOLPW = '([^']+)'/.exec(read('app.js')) || [])[1];
   if (!sb[1] || !email || !pw) throw new Error('Supabase settings not found');
   const base = sb[1].replace(/\/+$/, '');

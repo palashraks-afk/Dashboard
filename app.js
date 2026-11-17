@@ -23,6 +23,7 @@ function parseIso(s) { var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +
 function daysUntil(iso) { var t = new Date(); t.setHours(0, 0, 0, 0); return Math.round((parseIso(iso) - t) / 86400000); }
 var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 var DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+function fmtTime(t) { var m = /^(\d{1,2}):(\d\d)/.exec(t || ''); if (!m) return t || ''; var h = +m[1]; return (h % 12 || 12) + ':' + m[2] + ' ' + (h < 12 ? 'AM' : 'PM'); }
 function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 function fmt(iso) { if (!iso) return ''; var d = parseIso(iso); return cap(MON[d.getMonth()]) + ' ' + d.getDate() + ', ' + d.getFullYear(); }
 function dowIdx(d) { return (d.getDay() + 6) % 7; }
@@ -142,7 +143,7 @@ var MONFULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', '
 function dayAgenda(iso) {
   var evs = eventsOn(parseIso(iso)), dls = allDeadlines().filter(function (x) { return x.iso === iso && (x.id || x.kind === 'SAT'); });
   var o = '<div class="cal-ag"><b>' + fmt(iso) + '</b><ul class="list">';
-  evs.forEach(function (e) { o += '<li><span class="t"><b>' + esc(e.start) + '</b> ' + esc(e.title) + '</span><button class="x" data-act="delevent" data-id="' + e.id + '" title="Delete">&times;</button></li>'; });
+  evs.forEach(function (e) { o += '<li><span class="t"><b>' + esc(fmtTime(e.start)) + '</b> ' + esc(e.title) + '</span><button class="x" data-act="delevent" data-id="' + e.id + '" title="Delete">&times;</button></li>'; });
   dls.forEach(function (x) { o += '<li><span class="t' + (x.id ? ' click' : '') + '"' + (x.id ? ' data-act="detail" data-id="' + x.id + '"' : '') + '>' + esc(shortTxt(x.title, 40)) + ' <span class="tag">' + x.kind + '</span></span></li>'; });
   if (!evs.length && !dls.length) o += '<li class="muted">Nothing on this day.</li>';
   return o + '</ul></div>';
@@ -170,17 +171,18 @@ function vToday() {
   var hero = dl.filter(function (x) { return x.iso >= tdy; })[0];
   var ev = eventsOn(now);
   var o = '<div class="hd"><h1>' + g + ', ' + esc(S.profile.name || 'Palash') + '</h1><span class="row"><span class="muted">' + now.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }) + '</span><button class="btn ghost small" data-act="readday">&#9658; Read my day</button></span></div>';
-  if (hero) o += '<div class="hero"><div><span class="kicker">Next up</span><h2>' + esc(hero.title) + '</h2><span class="muted">' + fmt(hero.iso) + ' · ' + hero.kind + '</span></div><div class="hero-r"><b>' + (daysUntil(hero.iso) === 0 ? 'Today' : daysUntil(hero.iso) + ' d') + '</b><div class="row">' + openBtn(hero.link) + '<a class="btn ghost small" target="_blank" rel="noopener" href="' + gcal(hero.title, hero.iso, hero.kind) + '">+ Calendar</a></div></div></div>';
+  if (hero) o += '<div class="hero"><div><span class="kicker">Next up</span><h2>' + esc(hero.title) + '</h2><span class="muted">' + fmt(hero.iso) + ' · ' + hero.kind + '</span></div><div class="hero-r">' + ringHtml(daysUntil(hero.iso)) + '<div class="row">' + openBtn(hero.link) + '<a class="btn ghost small" target="_blank" rel="noopener" href="' + gcal(hero.title, hero.iso, hero.kind) + '">+ Calendar</a></div></div></div>';
   var urgent = dl.filter(function (x) { return x.iso <= isoOf(new Date(now.getTime() + 2 * 864e5)) && (x.task || daysUntil(x.iso) >= 0); });
   if (urgent.length) o += '<div class="alert" style="margin-bottom:12px"><b>' + urgent.length + ' due in the next 2 days:</b> ' + urgent.slice(0, 4).map(function (x) { return esc(shortTxt(x.title, 28)); }).join(', ') + (urgent.length > 4 ? ' and more' : '') + '</div>';
   o += '<div class="grid">' +
-    '<div class="card' + (dueToday.length ? ' hot' : '') + '"><small>Due today</small><b class="big">' + dueToday.length + '</b></div>' +
-    '<div class="card' + (over.length ? ' bad' : '') + '"><small>Overdue</small><b class="big">' + over.length + '</b></div>' +
-    '<div class="card"><small>Next 14 days</small><b class="big">' + week.length + '</b></div>' +
+    '<div class="card' + (dueToday.length ? ' hot' : '') + '"><small>Due today</small><b class="big" data-count="' + dueToday.length + '">' + dueToday.length + '</b></div>' +
+    '<div class="card' + (over.length ? ' bad' : '') + '"><small>Overdue</small><b class="big" data-count="' + over.length + '">' + over.length + '</b></div>' +
+    '<div class="card"><small>Next 14 days</small><b class="big" data-count="' + week.length + '">' + week.length + '</b></div>' +
     (nextSat ? '<div class="card' + (daysUntil(nextSat.reg) <= 7 ? ' hot' : '') + '"><small>SAT ' + fmt(nextSat.date) + ' registration</small><b class="big">' + daysUntil(nextSat.reg) + ' d</b></div>' : '') + '</div>';
+  o += strip14(dl) + priorities(dl);
   var tl = S.tasks.filter(function (t) { return !t.done && t.due && t.due <= tdy; }).sort(function (a, b) { return a.due < b.due ? -1 : 1; });
   o += '<div class="two"><div><h2>Do today</h2><div class="card"><form data-form="quicktask" class="row"><input type="text" name="title" placeholder="Add a task" required style="flex:1;min-width:140px"><input type="date" name="due" value="' + tdy + '"><button class="btn">Add</button></form><ul class="list">' + (tl.length ? tl.map(taskLi).join('') : '<li class="muted">Nothing due.</li>') + '</ul></div>' +
-    '<h2>Schedule</h2><div class="card"><ul class="list">' + (ev.length ? ev.map(function (e) { return '<li><span class="t"><b>' + esc(e.start) + '</b> ' + esc(e.title) + '</span></li>'; }).join('') : '<li class="muted">No blocks today.</li>') + '</ul></div></div>' +
+    '<h2>Schedule</h2><div class="card"><ul class="list">' + (ev.length ? ev.map(function (e) { return '<li><span class="t"><b>' + esc(fmtTime(e.start)) + '</b> ' + esc(e.title) + '</span></li>'; }).join('') : '<li class="muted">No blocks today.</li>') + '</ul></div></div>' +
     '<div><h2>Calendar</h2><div class="card">' + calHtml() + '</div><h2>Reminders</h2><div class="card"><ul class="list">' + remList(dl) + '</ul></div></div></div>';
   o += '<h2>Deadlines, closest first</h2>' + colHead('Due', 'What', 'What to do next', 'Status') + deadlineRows(dl);
   return o;
@@ -238,7 +240,7 @@ function dueChip(iso, text, approx, closed) {
 }
 function fmtShort(iso) { return parseIso(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
 function colHead(a, b, c, d) { return '<div class="cols head"><span>' + a + '</span><span>' + b + '</span><span>' + c + '</span><span>' + d + '</span></div>'; }
-var PSTAR = { p67: 5, p68: 5, p20: 5, p43: 5, p12: 5, p73: 5, p16: 5, p10: 5, p28: 4, p8: 4, p22: 4, p13: 4, p34: 4, p36: 4, p11: 4, p46: 4, p29: 4, p33: 4, p32: 4, p71: 4, p15: 4, p53: 4, p50: 4, p48: 4, p54: 4, p21: 2, p5: 2, p38: 2, p39: 2, p6: 2, p63: 2, p66: 2 };
+var PSTAR = { p67: 5, p68: 5, p20: 5, p43: 5, p12: 5, p73: 5, p16: 5, p10: 5, p28: 4, p8: 1, p22: 4, p13: 4, p34: 1, p36: 1, p11: 4, p46: 4, p29: 2, p33: 1, p32: 4, p71: 4, p15: 4, p53: 4, p50: 4, p48: 4, p54: 4, p21: 2, p5: 2, p38: 2, p39: 2, p6: 2, p63: 2, p66: 2 };
 function starsOf(id) {
   var v = S.stars && S.stars[id]; if (v) return v;
   var c = SEED.competitions.filter(function (x) { return x.id === id; })[0];
@@ -255,9 +257,9 @@ function shortTxt(t, n) { t = String(t || '').replace(/\s*\([^)]*\)/g, ''); retu
 function sentences(t) { return String(t || '').replace(/\b(Dr|Mr|Mrs|Ms|vs|St|Rep)\./g, '$1\u0001').split(/(?<=[.!?])\s+/).filter(Boolean).map(function (x) { return x.replace(/\u0001/g, '.'); }); }
 function findItem(id) {
   var c = SEED.competitions.filter(function (x) { return x.id === id; })[0];
-  if (c) return { kind: 'Competition', id: id, title: c.name, sub: c.sub, iso: c.iso, dateText: c.dateText, status: c.status, todo: sentences(c.needs), facts: [c.dateNote, c.elig ? 'Who can enter: ' + c.elig : ''], link: c.link, list: CST, src: c.src };
+  if (c) return { kind: 'Competition', id: id, title: c.name, sub: c.sub, iso: c.iso, dateText: c.dateText, status: c.status, todo: sentences(c.needs), facts: [c.dateNote, c.elig ? 'Who can enter: ' + c.elig : '', c.verified ? 'Checked against the official source on ' + c.verified + '.' : ''], link: c.link, list: CST, src: c.src };
   var p = SEED.programs.filter(function (x) { return x.id === id; })[0];
-  if (p) return { kind: p.cat === 'Internship / research' ? 'Internship' : 'Program', id: id, title: p.name, sub: p.get, iso: p.approx ? '' : p.iso, dateText: (p.dateText || p.date) + (p.approx ? ' (approx)' : ''), todo: sentences(p.next), facts: [p.pay, p.type ? 'Type: ' + p.type : ''], link: p.link, list: PST, search: !p.link };
+  if (p) return { kind: p.cat === 'Internship / research' ? 'Internship' : 'Program', id: id, title: p.name, sub: p.get, iso: p.approx ? '' : p.iso, dateText: (p.dateText || p.date) + (p.approx ? ' (approx)' : ''), todo: sentences(p.next), facts: [p.pay, p.type ? 'Type: ' + p.type : '', p.verified ? 'Checked against the official source on ' + p.verified + '.' : ''], link: p.link, list: PST, search: !p.link };
   var t = S.tasks.filter(function (x) { return x.id === id; })[0];
   if (t) { var sd = SEED.tasks.filter(function (x) { return x.id === id; })[0] || {}; return { kind: 'Task', id: id, title: t.title, sub: t.course || '', iso: t.due, dateText: t.due ? fmt(t.due) : 'No date', todo: sentences(t.info || sd.info || ''), facts: [], link: t.link || sd.link, task: true }; }
   return null;
@@ -476,7 +478,7 @@ function dayBrief() {
   var soon = dl.filter(function (x) { var n = daysUntil(x.iso); return n >= 1 && n <= 3; });
   if (over.length) out.push('Overdue: ' + over.slice(0, 4).map(nm).join(', ') + '.');
   out.push(dt.length ? 'Due today: ' + dt.slice(0, 6).map(nm).join(', ') + '.' : 'Nothing is due today.');
-  var ev = eventsOn(now); if (ev.length) out.push('On your schedule: ' + ev.map(function (e) { return e.title + ' at ' + e.start; }).join(', ') + '.');
+  var ev = eventsOn(now); if (ev.length) out.push('On your schedule: ' + ev.map(function (e) { return e.title + ' at ' + fmtTime(e.start); }).join(', ') + '.');
   if (soon.length) out.push('Coming up in the next three days: ' + soon.slice(0, 5).map(function (x) { return nm(x) + ' on ' + fmtShort(x.iso); }).join(', ') + '.');
   return out.join(' ');
 }
@@ -484,10 +486,50 @@ function itemSpeech(id) { var it = findItem(id); if (!it) return ''; return it.t
 if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = function () { if (view === 'connect') render(); };
 /* ---------- render ---------- */
 var app = document.getElementById('app');
+function countUp() {
+  if (document.hidden || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  var els = document.querySelectorAll('[data-count]'), t0 = performance.now();
+  els.forEach(function (el) { el.textContent = '0'; });
+  setTimeout(function () { els.forEach(function (el) { el.textContent = el.getAttribute('data-count'); }); }, 900);
+  (function tick(now) {
+    var k = Math.min(1, (now - t0) / 700), e = 1 - Math.pow(1 - k, 3);
+    els.forEach(function (el) { el.textContent = Math.round(+el.getAttribute('data-count') * e); });
+    if (k < 1) requestAnimationFrame(tick);
+  })(t0);
+}
+function ringHtml(n) {
+  var pct = Math.max(6, Math.round(100 * (1 - Math.min(Math.max(n, 0), 30) / 30)));
+  return '<div class="ring"><svg viewBox="0 0 80 80" aria-hidden="true"><circle class="rb" cx="40" cy="40" r="34"/><circle class="rf" cx="40" cy="40" r="34" pathLength="100" stroke-dasharray="' + pct + ' 100"/></svg><b>' + (n === 0 ? 'Today' : n) + '</b><small>' + (n === 0 ? '' : n === 1 ? 'day' : 'days') + '</small></div>';
+}
+function strip14(dl) {
+  var o = '<h2>Next 14 days</h2><div class="card"><div class="strip">';
+  for (var i = 0; i < 14; i++) {
+    var d = new Date(); d.setDate(d.getDate() + i); var iso = isoOf(d), it = dl.filter(function (x) { return x.iso === iso && (x.id || x.kind === 'SAT'); }), n = it.length;
+    o += '<button class="st-d ' + (n ? urg(iso) : '') + (i === 0 ? ' now' : '') + '" data-act="calday" data-id="' + iso + '" style="--h:' + Math.min(n, 4) + ';--i:' + i + '" title="' + esc(n ? it.map(function (x) { return shortTxt(x.title, 30); }).join(', ') : 'Nothing due') + '"><i></i><span>' + d.getDate() + '</span><small>' + DOW[dowIdx(d)].slice(0, 1) + '</small></button>';
+  }
+  return o + '</div></div>';
+}
+function priorities(dl) {
+  var c = dl.filter(function (x) { return x.id && (x.view === 'comps' || x.view === 'progs') && daysUntil(x.iso) >= 0 && daysUntil(x.iso) <= 75; });
+  c.sort(function (a, b) { return (starsOf(b.id) * 14 - daysUntil(b.iso)) - (starsOf(a.id) * 14 - daysUntil(a.iso)); });
+  if (!c.length) return '';
+  return '<h2>Top priorities</h2><div class="card"><ul class="list">' + c.slice(0, 4).map(function (x) { return '<li><span class="t click" data-act="detail" data-id="' + x.id + '"><b>' + esc(shortTxt(x.title, 40)) + '</b> ' + starsHtml(starsOf(x.id)) + '</span>' + leftTxt(x.iso) + '</li>'; }).join('') + '</ul><small class="muted">Ranked by your star rating and how soon it is due.</small></div>';
+}
+function glowInit() {
+  if (!window.matchMedia || !matchMedia('(hover: hover)').matches) return;
+  document.addEventListener('pointermove', function (e) {
+    var t = e.target.closest && e.target.closest('.card,.row2,.hero,.item'); if (!t) return;
+    var r = t.getBoundingClientRect(); t.style.setProperty('--mx', (e.clientX - r.left) + 'px'); t.style.setProperty('--my', (e.clientY - r.top) + 'px');
+  }, { passive: true });
+}
+glowInit();
+var lastView = null;
 function render() {
+  var viewChanged = view !== lastView; lastView = view;
   if (S && S.events) S.events = S.events.filter(function (e) { return !e.example; });
   var body = view === 'today' ? vToday() : view === 'comps' ? vComps() : view === 'progs' ? vProgs() : view === 'school' ? vSchool() : view === 'sat' ? vSat() : view === 'sched' ? vSched() : vConnect();
-  app.innerHTML = '<div class="shell"><nav class="side"><div class="brand"><svg class="logo" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#000"/><defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd37e"/><stop offset="1" stop-color="#ff7a45"/></linearGradient></defs><path d="M244.4 143.5 A130.6 130.6 0 0 0 244.4 404.6 Z" fill="#eef2f5"/><path d="M268.2 107.8 A130.6 130.6 0 0 1 268.2 369.2 Z" fill="url(#sg)"/></svg><span>Sol</span></div>' + NAV.map(function (n) { return '<button data-nav="' + n[0] + '" class="' + (view === n[0] ? 'on' : '') + '">' + n[1] + '</button>'; }).join('') + '<div class="grow"></div><button data-act="ask" class="ask">Ask <kbd>Ctrl K</kbd></button></nav><main>' + body + '</main></div>';
+  app.innerHTML = '<div class="shell"><nav class="side"><div class="brand"><svg class="logo" viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" rx="112" fill="#000"/><defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd37e"/><stop offset="1" stop-color="#ff7a45"/></linearGradient></defs><path d="M244.4 143.5 A130.6 130.6 0 0 0 244.4 404.6 Z" fill="#eef2f5"/><path d="M268.2 107.8 A130.6 130.6 0 0 1 268.2 369.2 Z" fill="url(#sg)"/></svg><span>Sol</span></div>' + NAV.map(function (n) { return '<button data-nav="' + n[0] + '" class="' + (view === n[0] ? 'on' : '') + '">' + n[1] + '</button>'; }).join('') + '<div class="grow"></div><button data-act="ask" class="ask">Ask <kbd>Ctrl K</kbd></button></nav><main' + (viewChanged ? ' class="enter"' : '') + '>' + body + '</main></div>';
+  if (viewChanged) countUp();
   if (window.AI) AI.draw();
 }
 function go(v) { view = v; render(); window.scrollTo(0, 0); }
@@ -549,7 +591,7 @@ function startReminders() {
     var now = new Date(), hm = pad(now.getHours()) + ':' + pad(now.getMinutes()), tdy = todayIso();
     eventsOn(now).forEach(function (e) {
       var st = e.start.split(':'), m = (+st[0]) * 60 + (+st[1]) - (now.getHours() * 60 + now.getMinutes());
-      var k = tdy + e.id; if (m >= 0 && m <= 10 && !fired[k]) { fired[k] = 1; new Notification(e.title, { body: 'Starts at ' + e.start }); }
+      var k = tdy + e.id; if (m >= 0 && m <= 10 && !fired[k]) { fired[k] = 1; new Notification(e.title, { body: 'Starts at ' + fmtTime(e.start) }); }
     });
     if (hm === '07:30' && !fired[tdy + 'sum']) { fired[tdy + 'sum'] = 1; var n = allDeadlines().filter(function (x) { return x.iso <= tdy; }).length; if (n) new Notification('Today', { body: n + ' item(s) due today or overdue' }); }
   }, 30000);
@@ -697,6 +739,7 @@ window.PD = {
   eventsOn: function (iso) { return eventsOn(parseIso(iso)); },
   ics: function () { return buildIcs(); },
   say: function (t) { say(t); },
+  fmtTime: fmtTime,
   stopSay: function () { ttsStop(); },
   speakable: function (t) { return speakable(t); },
   addTask: function (title, due) { S.tasks.push({ id: uid('t'), title: String(title).slice(0, 200), due: due || '', course: '', type: 'Task', done: false }); save(); render(); },

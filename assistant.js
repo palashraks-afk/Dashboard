@@ -121,7 +121,7 @@ function local(raw) {
     var w2 = PD.parseWhen(text), title = w2.rest.replace(/^(please |pls |can you |could you )/, '').replace(/^(remind me (to|about)?|add (a |an |the )?(task|reminder|event|todo|to do)?( to| for| called| named)?|put|schedule|set up|set|create|make|note( to self)?|i have to|i need to|i gotta|i have|i got|todo|task|reminder|dont let me forget to|don't let me forget to)\s*/i, '').replace(/\b(to my (calendar|schedule|list|tasks?)|on my (calendar|schedule)|in my (calendar|schedule))\b/g, '').replace(/\s+/g, ' ').trim();
     if (title) {
       title = title.charAt(0).toUpperCase() + title.slice(1);
-      if (w2.time && w2.iso) { var h = +w2.time.slice(0, 2) + 1, end = ('0' + (h % 24)).slice(-2) + w2.time.slice(2); PD.addEvent(title, w2.iso, w2.time, end); b.text = 'Added to your schedule: **' + title + '**, ' + fmtD(w2.iso) + ' at ' + w2.time + ' (1 hour).'; b.btns.push({ label: 'Open schedule', run: 'go', arg: 'sched' }); return b; }
+      if (w2.time && w2.iso) { var h = +w2.time.slice(0, 2) + 1, end = ('0' + (h % 24)).slice(-2) + w2.time.slice(2); PD.addEvent(title, w2.iso, w2.time, end); b.text = 'Added to your schedule: **' + title + '**, ' + fmtD(w2.iso) + ' at ' + PD.fmtTime(w2.time) + ' (1 hour).'; b.btns.push({ label: 'Open schedule', run: 'go', arg: 'sched' }); return b; }
       PD.addTask(title, w2.iso); b.text = 'Added task: **' + title + '**' + (w2.iso ? ', due ' + fmtD(w2.iso) : ', no date') + '.'; b.btns.push({ label: 'Open school tasks', run: 'go', arg: 'school' }); return b;
     }
   }
@@ -132,7 +132,7 @@ function local(raw) {
     var list = PD.due(from, to).filter(function (x) { return x.id || x.kind === 'SAT'; });
     var ev = (from === to) ? PD.eventsOn(from) : [];
     if (!list.length && !ev.length) { b.text = 'Nothing due ' + label + '.'; return b; }
-    b.text = '**Due ' + label + ':**\n' + list.slice(0, 8).map(function (x) { return '- ' + fmtD(x.iso) + ': ' + x.title; }).join('\n') + (ev.length ? '\n\n**Schedule:**\n' + ev.map(function (e) { return '- ' + e.start + ' ' + e.title; }).join('\n') : '');
+    b.text = '**Due ' + label + ':**\n' + list.slice(0, 8).map(function (x) { return '- ' + fmtD(x.iso) + ': ' + x.title; }).join('\n') + (ev.length ? '\n\n**Schedule:**\n' + ev.map(function (e) { return '- ' + PD.fmtTime(e.start) + ' ' + e.title; }).join('\n') : '');
     list.slice(0, 3).forEach(function (x) { if (x.id) b.btns.push({ label: x.title.slice(0, 22), run: 'show', arg: x.id }); });
     return b;
   }
