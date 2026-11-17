@@ -29,8 +29,8 @@ async function remoteState() {
     localStorage: { getItem: k => store[k] || null, setItem: (k, v) => { store[k] = v; }, removeItem: k => { delete store[k]; } },
     sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} },
     location: { href: 'https://palashraks-afk.github.io/Dashboard/', hash: '' }, navigator: {},
-    document: { getElementById: () => el(), addEventListener() {}, querySelector: () => null, querySelectorAll: () => [], documentElement: el(), body: el(), createElement: () => el(), hidden: false },
-    addEventListener() {}, Notification: undefined };
+    document: { getElementById: () => el(), addEventListener() {}, querySelector: () => null, querySelectorAll: () => [], documentElement: el(), body: el(), createElement: () => el(), hidden: true },
+    addEventListener() {}, Notification: undefined, performance: { now: () => 0 }, requestAnimationFrame() {}, matchMedia: () => ({ matches: false }) };
   sandbox.window = sandbox; sandbox.self = sandbox; vm.createContext(sandbox);
   for (const f of ['data.js', 'app.js']) vm.runInContext(read(f), sandbox, { filename: f });
   const ics = sandbox.PD.ics().replace(/\r\n/g, '\n').split('\n').join('\r\n') + '\r\n';
