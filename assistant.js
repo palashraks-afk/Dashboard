@@ -184,7 +184,7 @@ function ensureDom() {
   var d = document.createElement('div'); d.id = 'ai'; document.body.appendChild(d);
   d.addEventListener('click', function (e) {
     var b = e.target.closest('[data-ai]'); if (!b) return; var a = b.getAttribute('data-ai');
-    if (a === 'close') toggle(false); else if (a === 'new') { msgs = []; view = []; draw(); } else if (a === 'sugg') send(b.getAttribute('data-q')); else if (a === 'run') { var rr = b.getAttribute('data-run'), ra = b.getAttribute('data-arg'); if (rr === 'show') { toggle(false); PD.show(ra); } else if (rr === 'go') { toggle(false); PD.go(ra); } }
+    if (a === 'close') toggle(false); else if (a === 'new') { msgs = []; view = []; draw(); } else if (a === 'sugg') send(b.getAttribute('data-q')); else if (a === 'say') { var vm = view[+b.getAttribute('data-i')]; if (vm && vm.text) PD.say(vm.text); } else if (a === 'run') { var rr = b.getAttribute('data-run'), ra = b.getAttribute('data-arg'); if (rr === 'show') { toggle(false); PD.show(ra); } else if (rr === 'go') { toggle(false); PD.go(ra); } }
   });
   d.addEventListener('submit', function (e) { e.preventDefault(); var i = d.querySelector('input[name=q]'); var v = i.value; i.value = ''; send(v); });
 }
@@ -193,9 +193,10 @@ function draw() {
   if (!document.querySelector('.shell')) { d.innerHTML = ''; return; }
   var fab = '<button class="ai-fab" data-act="ask" aria-label="Ask the assistant">Ask</button>';
   if (!openState) { d.innerHTML = fab; return; }
-  var body = view.length ? view.map(function (m) {
+  var body = view.length ? view.map(function (m, vi) {
     if (m.role === 'user') return '<div class="ai-u">' + esc(m.text) + '</div>';
     return '<div class="ai-a">' + (m.text ? md(m.text) : (busy ? '<span class="muted">Working...</span>' : '')) +
+      (m.text ? '<div class="ai-links"><button class="btn ghost small" data-ai="say" data-i="' + vi + '">&#9658; Listen</button></div>' : '') +
       (m.actions.length ? '<div class="ai-act">' + m.actions.map(function (a) { return '<span class="tag ok">' + esc(a) + '</span>'; }).join('') + '</div>' : '') +
       (m.btns && m.btns.length ? '<div class="ai-links">' + m.btns.map(function (x) { return '<button class="btn ghost small" data-ai="run" data-run="' + esc(x.run) + '" data-arg="' + esc(x.arg) + '">' + esc(x.label) + '</button>'; }).join('') + '</div>' : '') +
       (m.links.length ? '<div class="ai-links">' + m.links.map(function (l) { return '<a class="btn small" href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(l.label) + ' &#8599;</a>'; }).join('') + '</div>' : '') +

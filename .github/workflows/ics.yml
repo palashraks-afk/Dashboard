@@ -1,0 +1,25 @@
+name: Update calendar feed
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: ics
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tools/make-ics.js
+      - name: Commit if changed
+        run: |
+          git config user.name "sol-bot"
+          git config user.email "sol-bot@users.noreply.github.com"
+          git add deadlines.ics
+          git diff --cached --quiet || (git commit -m "Update calendar feed" && git push)

@@ -43,7 +43,7 @@ function gcal(title, iso, details) {
 /* ---------- state ---------- */
 function defaultState() {
   return {
-    profile: { name: 'Palash', pinHash: '' }, status: {}, notes: {},
+    profile: { name: 'Palash', pinHash: '' }, status: {}, notes: {}, stars: {},
     tasks: SEED.tasks.map(function (t) { return { id: t.id, title: t.title, due: t.due, course: t.course, type: t.type, info: t.info, link: t.link, done: false }; }),
     events: [
       { id: 'e3', title: 'SAT prep', start: '17:30', end: '18:30', cat: 'sat', date: '2026-11-17' },
@@ -169,7 +169,7 @@ function vToday() {
   var nextSat = SEED.sat.filter(function (s) { return daysUntil(s.reg) >= 0; })[0];
   var hero = dl.filter(function (x) { return x.iso >= tdy; })[0];
   var ev = eventsOn(now);
-  var o = '<div class="hd"><h1>' + g + ', ' + esc(S.profile.name || 'Palash') + '</h1><span class="muted">' + now.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }) + '</span></div>';
+  var o = '<div class="hd"><h1>' + g + ', ' + esc(S.profile.name || 'Palash') + '</h1><span class="row"><span class="muted">' + now.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }) + '</span><button class="btn ghost small" data-act="readday">&#9658; Read my day</button></span></div>';
   if (hero) o += '<div class="hero"><div><span class="kicker">Next up</span><h2>' + esc(hero.title) + '</h2><span class="muted">' + fmt(hero.iso) + ' · ' + hero.kind + '</span></div><div class="hero-r"><b>' + (daysUntil(hero.iso) === 0 ? 'Today' : daysUntil(hero.iso) + ' d') + '</b><div class="row">' + openBtn(hero.link) + '<a class="btn ghost small" target="_blank" rel="noopener" href="' + gcal(hero.title, hero.iso, hero.kind) + '">+ Calendar</a></div></div></div>';
   var urgent = dl.filter(function (x) { return x.iso <= isoOf(new Date(now.getTime() + 2 * 864e5)) && (x.task || daysUntil(x.iso) >= 0); });
   if (urgent.length) o += '<div class="alert" style="margin-bottom:12px"><b>' + urgent.length + ' due in the next 2 days:</b> ' + urgent.slice(0, 4).map(function (x) { return esc(shortTxt(x.title, 28)); }).join(', ') + (urgent.length > 4 ? ' and more' : '') + '</div>';
@@ -201,7 +201,7 @@ function deadlineRows(dl) {
       var it = x.id ? findItem(x.id) : null, st = '';
       if (it && it.list) st = sel(x.id, it.list, S.status[x.id] || it.list[0]);
       else if (x.task) st = '<span class="muted">Task</span>';
-      var o2 = { id: x.id || 'sat', iso: x.iso, name: shortTxt(x.title, 42), sub: x.kind, next: it && it.todo[0] ? shortTxt(it.todo[0], 90) : '', st: st };
+      var o2 = { id: x.id || 'sat', iso: x.iso, name: shortTxt(x.title, 42), sub: x.kind, next: it && it.todo[0] ? shortTxt(it.todo[0], 90) : '', st: st, stars: it && it.list ? starsOf(x.id) : 0 };
       return x.id ? dRow(o2) : dRow(o2).replace('data-act="detail" data-id="sat"', 'data-nav="sat"');
     }).join('') + '</div>';
   });
@@ -238,8 +238,16 @@ function dueChip(iso, text, approx, closed) {
 }
 function fmtShort(iso) { return parseIso(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
 function colHead(a, b, c, d) { return '<div class="cols head"><span>' + a + '</span><span>' + b + '</span><span>' + c + '</span><span>' + d + '</span></div>'; }
-function dRow(o) {
-  return '<div class="row2 cols click ' + (o.closed ? 'dim' : (o.approx ? 'u-later' : urg(o.iso))) + '" data-act="detail" data-id="' + o.id + '" tabindex="0"><div>' + dueChip(o.iso, o.dateText, o.approx, o.closed) + '</div><div class="c-name"><b>' + esc(o.name) + '</b><small>' + esc(o.sub || '') + '</small></div><div class="c-next">' + esc(o.next || '') + '</div><div class="c-st">' + (o.st || '') + '</div></div>';
+var PSTAR = { p67: 5, p68: 5, p20: 5, p43: 5, p12: 5, p73: 5, p16: 5, p10: 5, p28: 4, p8: 4, p22: 4, p13: 4, p34: 4, p36: 4, p11: 4, p46: 4, p29: 4, p33: 4, p32: 4, p71: 4, p15: 4, p53: 4, p50: 4, p48: 4, p54: 4, p21: 2, p5: 2, p38: 2, p39: 2, p6: 2, p63: 2, p66: 2 };
+function starsOf(id) {
+  var v = S.stars && S.stars[id]; if (v) return v;
+  var c = SEED.competitions.filter(function (x) { return x.id === id; })[0];
+  return c ? (c.prestige || 3) : (PSTAR[id] || 3);
+}
+function starsHtml(n) { return '<span class="stars" aria-label="Importance ' + n + ' of 5">' + '\u2605'.repeat(n) + '<i>' + '\u2605'.repeat(5 - n) + '</i></span>'; }
+function starPicker(id) { var n = starsOf(id), o = '<span class="rate">'; for (var i = 1; i <= 5; i++) o += '<button type="button" class="star' + (i <= n ? ' on' : '') + '" data-act="setstar" data-id="' + id + '" data-v="' + i + '" aria-label="' + i + ' stars">\u2605</button>'; return o + '</span>'; }
+function byStars(a, b, ka, kb) { var d = starsOf(b.id) - starsOf(a.id); return d || (ka < kb ? -1 : ka > kb ? 1 : 0); }function dRow(o) {
+  return '<div class="row2 cols click ' + (o.closed ? 'dim' : (o.approx ? 'u-later' : urg(o.iso))) + '" data-act="detail" data-id="' + o.id + '" tabindex="0"><div>' + dueChip(o.iso, o.dateText, o.approx, o.closed) + '</div><div class="c-name"><b>' + esc(o.name) + '</b>' + (o.stars ? starsHtml(o.stars) : '') + '<small>' + esc(o.sub || '') + '</small></div><div class="c-next">' + esc(o.next || '') + '</div><div class="c-st">' + (o.st || '') + '</div></div>';
 }
 function firstStep(t, n) { var a = sentences(t)[0] || ''; return shortTxt(a, n || 80); }
 function shortDate(t) { return String(t || '').replace(/,? 20(\d\d)/, ' \u2019$1').replace(/ to /, ' to '); }
@@ -263,10 +271,10 @@ function showDetail(id) {
     '<button class="x m-x" data-act="closedetail" title="Close">&times;</button>' +
     '<span class="kicker">' + it.kind + '</span><h2>' + esc(it.title) + '</h2>' + (it.sub ? '<p class="muted">' + esc(it.sub) + '</p>' : '') +
     '<p><b>' + esc(it.dateText || '') + '</b> ' + (it.iso && it.list && !/approx|TBA|not posted/i.test(it.dateText || '') ? leftTxt(it.iso) : '') + '</p>' +
-    (it.list ? '<p>' + sel(id, it.list, st) + '</p>' : '') +
+    (it.list ? '<p>' + sel(id, it.list, st) + '</p><p class="muted">Importance ' + starPicker(id) + '</p>' : '') +
     (it.todo.length ? '<h3>What to do</h3><ul class="steps">' + it.todo.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') +
     (it.facts.filter(Boolean).length ? '<h3>Good to know</h3><ul class="steps">' + it.facts.filter(Boolean).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' : '') +
-    '<div class="row">' + (it.link ? openBtn(it.link, 'Open official page') : '') + '<a class="btn ghost small" target="_blank" rel="noopener" href="https://www.google.com/search?q=' + q + '">Search</a>' + (it.iso ? '<a class="btn ghost small" target="_blank" rel="noopener" href="' + gcal(it.title, it.iso, it.kind) + '">+ Calendar</a>' : '') + '<button class="btn ghost small" data-act="askabout" data-id="' + id + '">Ask assistant</button></div>' +
+    '<div class="row"><button class="btn ghost small" data-act="readitem" data-id="' + id + '">&#9658; Listen</button>' + (it.link ? openBtn(it.link, 'Open official page') : '') + '<a class="btn ghost small" target="_blank" rel="noopener" href="https://www.google.com/search?q=' + q + '">Search</a>' + (it.iso ? '<a class="btn ghost small" target="_blank" rel="noopener" href="' + gcal(it.title, it.iso, it.kind) + '">+ Calendar</a>' : '') + '<button class="btn ghost small" data-act="askabout" data-id="' + id + '">Ask assistant</button></div>' +
     (it.task ? '' : '<h3>Your notes</h3><textarea data-act="note" data-id="' + id + '" placeholder="Notes">' + esc(S.notes[id] || '') + '</textarea>') + '</div>';
   m.style.display = 'block';
 }
@@ -274,11 +282,11 @@ function hideDetail() { var m = document.getElementById('modal'); if (m) m.style
 function vComps() {
   var rows = SEED.competitions.slice();
   function ck(c) { return ((S.status[c.id] || c.status) === 'Closed' ? 'zz' : '') + (c.iso || '9999'); }
-  if (F.sort !== 'rank') rows.sort(function (a, b) { return ck(a) < ck(b) ? -1 : ck(a) > ck(b) ? 1 : 0; });
-  var o = '<div class="hd"><h1>Competitions</h1><label class="muted">Sort <select data-act="sort"><option value="date"' + (F.sort !== 'rank' ? ' selected' : '') + '>Closest deadline</option><option value="rank"' + (F.sort === 'rank' ? ' selected' : '') + '>Prestige</option></select></label></div>' + colHead('Due', 'Competition', 'What to do next', 'Status') + '<div class="rows">';
+  rows.sort(function (a, b) { return F.sort === 'rank' ? byStars(a, b, ck(a), ck(b)) : (ck(a) < ck(b) ? -1 : ck(a) > ck(b) ? 1 : 0); });
+  var o = '<div class="hd"><h1>Competitions</h1><label class="muted">Sort <select data-act="sort"><option value="date"' + (F.sort !== 'rank' ? ' selected' : '') + '>Closest deadline</option><option value="rank"' + (F.sort === 'rank' ? ' selected' : '') + '>Importance (stars)</option></select></label></div>' + colHead('Due', 'Competition', 'What to do next', 'Status') + '<div class="rows">';
   rows.forEach(function (c) {
     var st = S.status[c.id] || c.status || 'Not started';
-    var cl = st === 'Closed'; o += dRow({ id: c.id, iso: c.iso, approx: c.approx, closed: cl, dateText: shortDate(c.dateText), name: c.name, sub: shortTxt(c.sub, 40), next: firstStep(c.needs, 90), st: sel(c.id, CST, st) });
+    var cl = st === 'Closed'; o += dRow({ id: c.id, iso: c.iso, approx: c.approx, closed: cl, dateText: shortDate(c.dateText), name: c.name, stars: starsOf(c.id), sub: shortTxt(c.sub, 40), next: firstStep(c.needs, 90), st: sel(c.id, CST, st) });
   });
   return o + '</div>';
 }
@@ -295,11 +303,11 @@ function progMatch(p) {
 }
 function progTable() {
   function pk(p) { return ((S.status[p.id] || p.status) === 'Closed' ? 'zz' : '') + (p.iso || '9999'); }
-  var rows = SEED.programs.filter(progMatch).sort(function (a, b) { return pk(a) < pk(b) ? -1 : pk(a) > pk(b) ? 1 : 0; });
+  var rows = SEED.programs.filter(progMatch).sort(function (a, b) { return F.sort === 'rank' ? byStars(a, b, pk(a), pk(b)) : (pk(a) < pk(b) ? -1 : pk(a) > pk(b) ? 1 : 0); });
   var o = colHead('Due', 'Program', 'What to do next', 'Status') + '<div class="rows">';
   rows.forEach(function (p) {
     var st = S.status[p.id] || p.status || 'Not started';
-    o += dRow({ id: p.id, iso: p.iso, approx: p.approx, closed: st === 'Closed', dateText: shortDate(p.dateText || p.date), name: shortTxt(p.name, 34), sub: p.type + ' · ' + shortTxt(p.get, 28), next: firstStep(p.next, 90), st: sel(p.id, PST, st) });
+    o += dRow({ id: p.id, iso: p.iso, approx: p.approx, closed: st === 'Closed', dateText: shortDate(p.dateText || p.date), name: shortTxt(p.name, 34), stars: starsOf(p.id), sub: p.type + ' · ' + shortTxt(p.get, 28), next: firstStep(p.next, 90), st: sel(p.id, PST, st) });
   });
   return o + '</div><p class="muted">' + rows.length + ' of ' + SEED.programs.length + ' shown, closest deadline first. Dates marked approx are projected from 2026.</p>';
 }
@@ -307,7 +315,7 @@ function opts(list, cur) { return '<option value="">All</option>' + list.map(fun
 function uniq(f) { var s = {}; SEED.programs.forEach(function (p) { s[p[f]] = 1; }); return Object.keys(s); }
 function vProgs() {
   var o = '<div class="hd"><h1>Programs &amp; Internships</h1></div>';
-  o += '<div class="filters"><input type="search" data-act="q" placeholder="Search" value="' + esc(F.q) + '"><select data-act="fcat">' + opts(uniq('cat'), F.cat) + '</select><select data-act="ftype">' + opts(uniq('type'), F.type) + '</select><select data-act="fwin">' + opts(uniq('window'), F.win) + '</select><select data-act="fst">' + opts(PST, F.st) + '</select><label class="muted"><input type="checkbox" data-act="hideskip"' + (F.hideSkip ? ' checked' : '') + '> hide skipped</label></div>';
+  o += '<div class="filters"><input type="search" data-act="q" placeholder="Search" value="' + esc(F.q) + '"><select data-act="fcat">' + opts(uniq('cat'), F.cat) + '</select><select data-act="ftype">' + opts(uniq('type'), F.type) + '</select><select data-act="fwin">' + opts(uniq('window'), F.win) + '</select><select data-act="fst">' + opts(PST, F.st) + '</select><label class="muted">Sort <select data-act="sort"><option value="date"' + (F.sort !== 'rank' ? ' selected' : '') + '>Closest deadline</option><option value="rank"' + (F.sort === 'rank' ? ' selected' : '') + '>Importance (stars)</option></select></label><label class="muted"><input type="checkbox" data-act="hideskip"' + (F.hideSkip ? ' checked' : '') + '> hide skipped</label></div>';
   o += '<div id="progTable">' + progTable() + '</div>';
   o += '<details><summary>More programs from your lists (' + SEED.extra.length + ')</summary><p class="muted">Mostly 2026 dates. Check each site for 2027 deadlines.</p><div class="wrap"><table style="min-width:760px"><thead><tr><th>Program</th><th>Cost</th><th>Dates listed</th><th>Status</th></tr></thead><tbody>';
   SEED.extra.forEach(function (e) { o += '<tr><td class="nm">' + esc(e.name) + '<small>' + esc(e.what) + '</small></td><td>' + esc(e.cost) + '</td><td>' + esc(e.dates) + '</td><td>' + sel(e.id, PST, S.status[e.id] || 'Not started') + '</td></tr>'; });
@@ -359,6 +367,7 @@ function vConnect() {
   h2 += '<div><h2>Apple Calendar</h2><div class="card"><p>Web pages cannot write into Apple Calendar directly, so there are two links. <b>Subscribe</b> keeps a calendar called Palash Deadlines updated on your Mac, iPhone and iPad. <b>Add once</b> imports your current list including tasks you added here.</p><div class="row"><a class="btn" href="' + subUrl() + '">Subscribe in Apple Calendar</a><button class="btn ghost" data-act="ics">Add once (.ics)</button><button class="btn ghost" data-act="notify">Browser notifications</button></div><p class="muted">Subscribe works from your hosted site (GitHub Pages) and shows the deadlines saved in the repo file deadlines.ics. Every item reminds you 7 days, 3 days and 1 day before. Browser notifications only fire while this tab is open.</p></div>' +
     '<h2>Bring in school assignments</h2><div class="card"><p>Export or subscribe to your school calendar (Google Classroom, Canvas, Schoology and PowerSchool all offer an .ics or calendar link) and import the file here. Items with due dates become tasks.</p><input type="file" id="icsfile" accept=".ics,text/calendar"></div>' +
     '<h2>Backup</h2><div class="card"><div class="row"><button class="btn ghost" data-act="export">Export my data</button><label class="btn ghost" style="cursor:pointer">Import data<input type="file" id="jsonfile" accept=".json" hidden></label></div></div></div></div>';
+  h2 += '<h2>Voice</h2><div class="card"><p class="muted">Read aloud uses your device voices, so it starts instantly and works offline.</p><div class="row"><select data-act="ttsvoice" aria-label="Voice"><option value="">Best available voice</option>' + ttsVoices().map(function (v) { return '<option value="' + esc(v.name) + '"' + (ttsCfg().voice === v.name ? ' selected' : '') + '>' + esc(v.name) + '</option>'; }).join('') + '</select><label class="muted">Speed <input type="range" min="0.8" max="1.8" step="0.1" value="' + ttsCfg().rate + '" data-act="ttsrate"> <span id="ttsrv">' + ttsCfg().rate + 'x</span></label><button class="btn ghost small" data-act="ttstest">Test voice</button><button class="btn ghost small" data-act="ttsstop">Stop</button></div></div>';
   h2 += '<details><summary>Set up login and cross-device sync with Supabase</summary><ol><li>Create a project at supabase.com.</li><li>Authentication, Providers, Email: turn off Confirm email.</li><li>SQL Editor: run the SQL below.</li><li>Project Settings, API: copy the Project URL and the anon key into the form above.</li><li>Sign in with Create account. After that, turn off sign-ups in Authentication, Sign In / Providers.</li></ol><pre>create table dashboards (uid uuid primary key references auth.users(id) on delete cascade, json text, updated bigint);\nalter table dashboards enable row level security;\ncreate policy own on dashboards for all using (auth.uid() = uid) with check (auth.uid() = uid);</pre><p class="muted">The anon key is not a secret. The row level security policy is what protects your data.</p></details>';
   h2 += '<details><summary>Put it on your GitHub repo and a web address</summary><pre>git clone https://github.com/palashraks-afk/Dashboard\ncd Dashboard\n# copy index.html, styles.css, app.js, data.js into this folder\ngit add . &amp;&amp; git commit -m "Add daily dashboard" &amp;&amp; git push</pre><p>Then on GitHub: Settings, Pages, Source "Deploy from a branch", branch main, folder /root. Your dashboard will be live at https://palashraks-afk.github.io/Dashboard/ in a minute or two. Change deadlines or add programs by editing data.js.</p></details>';
   return h2;
@@ -382,7 +391,19 @@ function buildIcs() {
     var a = x.iso.replace(/-/g, ''), d = parseIso(x.iso); d.setDate(d.getDate() + 1);
     L.push('BEGIN:VEVENT', 'UID:pd-' + (x.id || ('x' + i)) + '-' + a + '@dashboard', 'DTSTAMP:' + todayIso().replace(/-/g, '') + 'T000000Z', 'DTSTART;VALUE=DATE:' + a, 'DTEND;VALUE=DATE:' + isoOf(d).replace(/-/g, ''), 'SUMMARY:' + icsEscape(icsName(x)), 'DESCRIPTION:' + icsEscape(icsDesc(x)), 'BEGIN:VALARM', 'TRIGGER:-P7D', 'ACTION:DISPLAY', 'DESCRIPTION:Due in a week', 'END:VALARM', 'BEGIN:VALARM', 'TRIGGER:-P3D', 'ACTION:DISPLAY', 'DESCRIPTION:Due in 3 days', 'END:VALARM', 'BEGIN:VALARM', 'TRIGGER:-P1D', 'ACTION:DISPLAY', 'DESCRIPTION:Due tomorrow', 'END:VALARM', 'END:VEVENT');
   });
-  L.push('END:VCALENDAR'); return L.join('\r\n');
+  var stampD = todayIso().replace(/-/g, ''), BD = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+  (S.events || []).forEach(function (e) {
+    if (e.example || !e.start || !e.end) return;
+    var t1 = e.start.replace(':', '') + '00', t2 = e.end.replace(':', '') + '00', day = e.date ? e.date.replace(/-/g, '') : '', rr = '';
+    if (!day && e.days && e.days.length) {
+      var d0 = new Date(); for (var k = 0; k < 7 && e.days.indexOf(dowIdx(d0)) < 0; k++) d0.setDate(d0.getDate() + 1);
+      day = isoOf(d0).replace(/-/g, ''); rr = 'RRULE:FREQ=WEEKLY;BYDAY=' + e.days.map(function (i) { return BD[i]; }).join(',');
+    }
+    if (!day) return;
+    L.push('BEGIN:VEVENT', 'UID:pd-ev-' + e.id + '@dashboard', 'DTSTAMP:' + stampD + 'T000000Z', 'DTSTART:' + day + 'T' + t1, 'DTEND:' + day + 'T' + t2, 'SUMMARY:' + icsEscape(e.title));
+    if (rr) L.push(rr);
+    L.push('BEGIN:VALARM', 'TRIGGER:-PT15M', 'ACTION:DISPLAY', 'DESCRIPTION:Starting soon', 'END:VALARM', 'END:VEVENT');
+  });  L.push('END:VCALENDAR'); return L.join('\r\n');
 }
 function download(name, text, type) {
   var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type: type })); a.download = name; document.body.appendChild(a); a.click(); a.remove();
@@ -403,6 +424,64 @@ function importIcs(text) {
   return added;
 }
 
+/* ---------- text to speech (browser voices: instant, offline, no key) ---------- */
+var TTSKEY = 'pd_tts_v1', ttsId = 0, ttsOn = false;
+var SAY = { SAT: 'S A T', PSAT: 'P S A T', AP: 'A P', ISEF: 'eye-sef', SIMSEF: 'sim-sef', JSHS: 'J S H S', USACO: 'you-sack-oh', NIH: 'N I H', SIP: 'S I P', SEAP: 'seep', AEOP: 'A E O P', MIT: 'M I T', UCLA: 'U C L A', UCSF: 'U C S F', UCSB: 'U C S B', UCSD: 'U C S D', UCI: 'U C I', UCR: 'U C R', UC: 'U C', USC: 'U S C', NYU: 'N Y U', BWSI: 'B W S I', RSI: 'R S I', AIMI: 'A I M I', SRP: 'S R P', SIMR: 'simmer', STAR: 'star', PRIMES: 'primes', CNSI: 'C N S I', SSTP: 'S S T P', ASDRP: 'A S D R P', CHLA: 'C H L A', NIST: 'nist', NASA: 'NASA', JPL: 'J P L', AFRL: 'A F R L', APL: 'A P L', GPA: 'G P A', PDF: 'P D F', AI: 'A I', ML: 'M L', USA: 'U S A', STEM: 'stem', SHTEM: 'shtem', RISE: 'rise', BSAS: 'B S A S', BEYA: 'B E Y A', REHS: 'R E H S', SEES: 'sees', WFIRM: 'W F I R M', DSI: 'D S I', EEI: 'E E I', ABC: 'A B C', IMO: 'I M O', RMP: 'R M P', SCIP: 'S C I P', SRTP: 'S R T P', INSPIRE: 'inspire', DREAM: 'dream', CS4CS: 'C S 4 C S', ICS: 'I C S', ASSIP: 'A S S I P', COM: 'C O M', SoCal: 'So Cal', FlowPhase: 'Flow Phase', ExploraVision: 'Explora Vision', BioGENEius: 'Bio Genius', PT: 'Pacific time', ET: 'Eastern time', CT: 'Central time', ICS: 'I C S' };
+var MONTHS = { Jan: 'January', Feb: 'February', Mar: 'March', Apr: 'April', Jun: 'June', Jul: 'July', Aug: 'August', Sep: 'September', Sept: 'September', Oct: 'October', Nov: 'November', Dec: 'December' };
+function ordinal(n) { n = +n; var v = n % 100; return n + (v >= 11 && v <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th')); }
+function speakable(t) {
+  t = String(t || '');
+  t = t.replace(/\[([^\]]+)\]\(https?:[^)]+\)/g, '$1').replace(/https?:\/\/\S+/g, 'the link on screen').replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, 'the address on screen');
+  t = t.replace(/[*`#_]/g, '').replace(/&/g, ' and ').replace(/\s*[\u2013\u2014]\s*/g, ', ').replace(/\u2026/g, '.');
+  t = t.replace(/\b(20\d\d)-(\d\d)-(\d\d)\b/g, function (m, y, mo, d) { var names = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']; return names[+mo - 1] + ' ' + ordinal(d); });
+  t = t.replace(/\b(Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept|Sep|Oct|Nov|Dec)\.?\s+(\d{1,2})(?:,\s*(20\d\d))?\b(?!:)/g, function (m, mo, d, y) { return MONTHS[mo] + ' ' + ordinal(d) + (y ? ', ' + y : ''); });
+  t = t.replace(/\bMay\s+(\d{1,2})\b(?!:)/g, function (m, d) { return 'May ' + ordinal(d); });
+  t = t.replace(/\b(\d{1,2}):(\d\d)\s*([ap])\.?m\.?/gi, function (m, h, mi, ap) { return h + (mi === '00' ? '' : ' ' + mi) + ' ' + ap.toUpperCase() + ' M'; });
+  t = t.replace(/\b(\d{1,2})\s*([ap])\.?m\.?\b/gi, function (m, h, ap) { return h + ' ' + ap.toUpperCase() + ' M'; });
+  t = t.replace(/\b(\d+)\s*d\b/g, '$1 days').replace(/\bw\/\s*/g, 'with ').replace(/\bvs\.?\b/g, 'versus').replace(/\b(\d+)\+/g, '$1 plus');
+  t = t.replace(/\b[A-Za-z][A-Za-z0-9]*\b/g, function (w) { return Object.prototype.hasOwnProperty.call(SAY, w) ? SAY[w] : w; });
+  return t.replace(/\s+/g, ' ').trim();
+}
+function ttsCfg() { var c = {}; try { c = JSON.parse(lsGet(TTSKEY) || '{}'); } catch (e) {} if (!c.rate) c.rate = 1.1; return c; }
+function ttsVoices() { return ('speechSynthesis' in window) ? speechSynthesis.getVoices().filter(function (v) { return /^en/i.test(v.lang); }) : []; }
+function pickVoice() {
+  var c = ttsCfg(), vs = ttsVoices(); if (!vs.length) return null;
+  if (c.voice) { var m = vs.filter(function (v) { return v.name === c.voice; })[0]; if (m) return m; }
+  var rank = [/premium|enhanced|siri|natural|neural/i, /google us english|samantha|ava|allison|zoe|aaron|nicky|microsoft (aria|jenny|guy)/i];
+  for (var i = 0; i < rank.length; i++) { var f = vs.filter(function (v) { return rank[i].test(v.name) && /en[-_]US/i.test(v.lang); })[0]; if (f) return f; }
+  return vs.filter(function (v) { return /en[-_]US/i.test(v.lang); })[0] || vs[0];
+}
+function ttsStop() { ttsId++; ttsOn = false; try { speechSynthesis.cancel(); } catch (e) {} }
+function say(text) {
+  if (!('speechSynthesis' in window)) { alert('This browser has no built-in speech.'); return; }
+  if (ttsOn) { ttsStop(); return; }
+  var chunks = speakable(text).match(/[^.!?;:]+[.!?;:]*\s*/g) || [], parts = [], cur = '';
+  chunks.forEach(function (c) { if ((cur + c).length > 170 && cur) { parts.push(cur); cur = c; } else cur += c; }); if (cur.trim()) parts.push(cur);
+  if (!parts.length) return;
+  var my = ++ttsId, c = ttsCfg(), v = pickVoice(); ttsOn = true;
+  try { speechSynthesis.cancel(); } catch (e) {}
+  function next(i) {
+    if (my !== ttsId || i >= parts.length) { if (my === ttsId) ttsOn = false; return; }
+    var u = new SpeechSynthesisUtterance(parts[i]); if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-US';
+    u.rate = c.rate || 1.1; u.pitch = 1; u.onend = function () { next(i + 1); }; u.onerror = function () { if (my === ttsId) ttsOn = false; };
+    speechSynthesis.speak(u);
+  }
+  next(0);
+}
+function dayBrief() {
+  var now = new Date(), h = now.getHours(), tdy = todayIso(), dl = allDeadlines().filter(function (x) { return x.id || x.kind === 'SAT'; });
+  var nm = function (x) { return x.kind === 'SAT' ? x.title.replace(/ \(test.*$/, '') : x.title; };
+  var out = [(h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening') + ', ' + (S.profile.name || 'Palash') + '. Today is ' + now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).replace(/(\d+)$/, function (d) { return ordinal(d); }) + '.'];
+  var over = dl.filter(function (x) { return x.iso < tdy && x.task; }), dt = dl.filter(function (x) { return x.iso === tdy; });
+  var soon = dl.filter(function (x) { var n = daysUntil(x.iso); return n >= 1 && n <= 3; });
+  if (over.length) out.push('Overdue: ' + over.slice(0, 4).map(nm).join(', ') + '.');
+  out.push(dt.length ? 'Due today: ' + dt.slice(0, 6).map(nm).join(', ') + '.' : 'Nothing is due today.');
+  var ev = eventsOn(now); if (ev.length) out.push('On your schedule: ' + ev.map(function (e) { return e.title + ' at ' + e.start; }).join(', ') + '.');
+  if (soon.length) out.push('Coming up in the next three days: ' + soon.slice(0, 5).map(function (x) { return nm(x) + ' on ' + fmtShort(x.iso); }).join(', ') + '.');
+  return out.join(' ');
+}
+function itemSpeech(id) { var it = findItem(id); if (!it) return ''; return it.title + '. ' + (it.dateText ? 'Date: ' + it.dateText + '. ' : '') + (it.todo.length ? 'What to do: ' + it.todo.join(' ') + ' ' : '') + it.facts.filter(Boolean).join(' '); }
+if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = function () { if (view === 'connect') render(); };
 /* ---------- render ---------- */
 var app = document.getElementById('app');
 function render() {
@@ -483,6 +562,11 @@ document.addEventListener('click', function (e) {
   var a = b.getAttribute('data-act'), id = b.getAttribute('data-id');
   if (a === 'deltask') { S.tasks = S.tasks.filter(function (t) { return t.id !== id; }); save(); render(); }
   else if (a === 'delevent') { S.events = S.events.filter(function (t) { return t.id !== id; }); save(); render(); }
+  else if (a === 'setstar') { S.stars = S.stars || {}; S.stars[id] = +b.getAttribute('data-v'); save(); render(); showDetail(id); }
+  else if (a === 'readday') { say(dayBrief()); }
+  else if (a === 'readitem') { say(itemSpeech(id)); }
+  else if (a === 'ttsstop') { ttsStop(); }
+  else if (a === 'ttstest') { ttsStop(); say('Good evening. Your S A T registration closes November 20th at 11:59 P M Pacific time. Xylem is due at 1 P M.'); }
   else if (a === 'calprev') { CAL.off--; render(); }
   else if (a === 'calnext') { CAL.off++; render(); }
   else if (a === 'caltoday') { CAL.off = 0; CAL.sel = todayIso(); render(); }
@@ -517,6 +601,8 @@ document.addEventListener('change', function (e) {
   else if (a === 'note') { S.notes[id] = t.value; save(); }
   else if (a === 'plan') { S.sat.plan[id] = t.checked; save(); }
   else if (a === 'sort') { F.sort = t.value; render(); }
+  else if (a === 'ttsvoice') { var tc = ttsCfg(); tc.voice = t.value; lsSet(TTSKEY, JSON.stringify(tc)); }
+  else if (a === 'ttsrate') { var tc2 = ttsCfg(); tc2.rate = +t.value; lsSet(TTSKEY, JSON.stringify(tc2)); var rv = document.getElementById('ttsrv'); if (rv) rv.textContent = t.value + 'x'; }
   else if (a === 'fcat') { F.cat = t.value; render(); } else if (a === 'ftype') { F.type = t.value; render(); } else if (a === 'fwin') { F.win = t.value; render(); } else if (a === 'fst') { F.st = t.value; render(); }
   else if (a === 'hideskip') { F.hideSkip = t.checked; render(); }
 });
@@ -610,6 +696,8 @@ window.PD = {
   due: function (fromIso, toIso) { return allDeadlines().filter(function (x) { return x.iso >= fromIso && x.iso <= toIso; }); },
   eventsOn: function (iso) { return eventsOn(parseIso(iso)); },
   ics: function () { return buildIcs(); },
+  say: function (t) { say(t); },
+  speakable: function (t) { return speakable(t); },
   addTask: function (title, due) { S.tasks.push({ id: uid('t'), title: String(title).slice(0, 200), due: due || '', course: '', type: 'Task', done: false }); save(); render(); },
   setStatus: function (id, st) {
     var known = SEED.competitions.concat(SEED.programs, SEED.extra).some(function (x) { return x.id === id; });

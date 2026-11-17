@@ -200,14 +200,14 @@ nav.side .ask{background:var(--accent);color:var(--accent-fg)} nav.side .ask:hov
 :root[data-theme="dark"],:root[data-pal="graphite"],:root[data-pal="ocean"]{--shine:rgba(255,255,255,.10);--edge:rgba(255,255,255,.14);--drop:rgba(0,0,0,.45)}
 :root[data-pal="graphite"]{--bg:#0b0b0e;--panel:#1b1b21}
 :root[data-pal="ocean"]{--bg:#06101f;--panel:#122542}
-body{background:
+body{background:var(--bg);min-height:100vh;min-height:100dvh}
+body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:
   radial-gradient(900px 520px at 8% -8%,color-mix(in srgb,var(--accent) 30%,transparent),transparent 62%),
   radial-gradient(760px 520px at 105% 2%,color-mix(in srgb,#ff6fa5 22%,transparent),transparent 60%),
   radial-gradient(800px 640px at 55% 112%,color-mix(in srgb,#2ed3a8 20%,transparent),transparent 60%),
-  var(--bg);background-attachment:fixed;min-height:100vh}
+  transparent}
 .card,details,.cal,.wrap,.alert,.login .box,.hero,nav.side,.m-box,.ai-panel,.day{
   background:color-mix(in srgb,var(--panel) var(--glass-a),transparent);
-  -webkit-backdrop-filter:blur(26px) saturate(185%);backdrop-filter:blur(26px) saturate(185%);
   border:1px solid var(--edge);border-radius:var(--r);
   box-shadow:inset 0 1px 0 var(--shine),inset 0 -1px 0 rgba(255,255,255,.04),0 10px 34px var(--drop)}
 nav.side{border-radius:0;border-width:0 1px 0 0;border-right:1px solid var(--edge)}
@@ -244,3 +244,30 @@ th{background:color-mix(in srgb,var(--panel) 50%,transparent)}
 .cal-ag{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
 .cal-ag .list li:last-child{border-bottom:0}
 @supports not (backdrop-filter:blur(1px)){.card,details,.cal,.wrap,.m-box,.ai-panel,nav.side{background:var(--panel)}}
+/* iOS Safari and installed-app fixes */
+nav.side,.m-box,.ai-panel,.login .box{-webkit-backdrop-filter:blur(20px) saturate(170%);backdrop-filter:blur(20px) saturate(170%)}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{overscroll-behavior-y:none;-webkit-font-smoothing:antialiased}
+a,button,select,summary,.click,.cal-c,.star{touch-action:manipulation}
+button{-webkit-appearance:none;appearance:none}
+.shell{min-height:100vh;min-height:100dvh}
+input[type=date],input[type=time]{-webkit-appearance:none;appearance:none;min-height:36px;max-width:100%}
+input[type=date]::-webkit-date-and-time-value{text-align:left}
+.m-box{max-height:86vh;max-height:86dvh;-webkit-overflow-scrolling:touch}
+.ai-panel{height:100vh;height:100dvh}
+.ai-body,.m-box{overscroll-behavior:contain}
+@media (max-width:860px){
+  nav.side{top:0;padding-top:max(8px,env(safe-area-inset-top));-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  nav.side::-webkit-scrollbar{display:none}
+  nav.side button{min-height:40px}
+  main{padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+  .card,details,.cal,.row2,.item{-webkit-transform:translateZ(0)}
+  .hero{padding:16px}
+  .cal-c{min-height:40px}
+}
+/* stars */
+.stars{display:block;color:#f5a623;letter-spacing:1px;font-size:12px;line-height:1.2;margin:1px 0}
+.stars i{font-style:normal;color:color-mix(in srgb,var(--muted) 35%,transparent)}
+.rate{display:inline-flex;gap:2px;vertical-align:middle}
+.star{background:none;border:0;font-size:26px;line-height:1;color:color-mix(in srgb,var(--muted) 35%,transparent);cursor:pointer;padding:2px;min-height:0}
+.star.on{color:#f5a623}
