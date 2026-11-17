@@ -1,5 +1,5 @@
 /* Sol. No build step. Data seed lives in data.js; your edits live in the browser
-   and, once you connect Firebase on the Connect tab, sync to your own account. */
+   and, once you connect Supabase on the Connect tab, sync to your own account. */
 (function () {
 'use strict';
 var SEED = window.SEED;
@@ -66,8 +66,8 @@ var pushTimer = null;
 function save() { S.updated = Date.now(); lsSet(KEY, JSON.stringify(S)); if (cloudOn() && session()) { clearTimeout(pushTimer); setSync('Saving...'); pushTimer = setTimeout(cloudPush, 1500); } }
 
 /* ---------- config, auth ---------- */
-function cfg() { var c = {}; try { c = JSON.parse(lsGet(CFGKEY) || '{}'); } catch (e) {} if (!c.apiKey && SEED.firebase) c = SEED.firebase; return c; }
-function cloudOn() { var c = cfg(); return !!(c.apiKey && c.projectId); }
+function cfg() { var c = {}; try { c = JSON.parse(lsGet(CFGKEY) || '{}'); } catch (e) {} if (!c.url && SEED.supabase) c = SEED.supabase; return c; }
+function cloudOn() { var c = cfg(); return !!(c.url && c.key); }
 function session() { try { return JSON.parse(lsGet(SESSKEY) || 'null'); } catch (e) { return null; } }
 var syncMsg = '';
 function setSync(m) { syncMsg = m; var el = document.getElementById('syncmsg'); if (el) el.textContent = m; }
@@ -78,39 +78,42 @@ function hashPin(pin) {
   var h = 0; for (var i = 0; i < pin.length; i++) h = (h * 31 + pin.charCodeAt(i)) | 0;
   return Promise.resolve('x' + h);
 }
-function fbCall(url, body) {
-  return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error((j.error && j.error.message) || 'Request failed'); return j; }); });
+function sbBase() { return cfg().url.replace(/\/+$/, ''); }
+function sbCall(path, body) {
+  var c = cfg();
+  return fetch(sbBase() + path, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: c.key }, body: JSON.stringify(body) }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.msg || j.error_description || j.message || j.error || 'Request failed'); return j; }); });
+}
+function saveSess(j) {
+  lsSet(SESSKEY, JSON.stringify({ uid: j.user.id, email: j.user.email, idToken: j.access_token, refresh: j.refresh_token, exp: Date.now() + (+j.expires_in - 60) * 1000 }));
 }
 function fbAuth(mode, email, pw) {
-  var c = cfg();
-  return fbCall('https://identitytoolkit.googleapis.com/v1/accounts:' + (mode === 'up' ? 'signUp' : 'signInWithPassword') + '?key=' + encodeURIComponent(c.apiKey), { email: email, password: pw, returnSecureToken: true }).then(function (j) {
-    lsSet(SESSKEY, JSON.stringify({ uid: j.localId, email: j.email, idToken: j.idToken, refresh: j.refreshToken, exp: Date.now() + (+j.expiresIn - 60) * 1000 }));
+  var p = mode === 'up' ? sbCall('/auth/v1/signup', { email: email, password: pw }) : sbCall('/auth/v1/token?grant_type=password', { email: email, password: pw });
+  return p.then(function (j) {
+    if (!j.access_token) throw new Error('Check your email to confirm the account, then sign in');
+    saveSess(j);
   });
 }
 function fbToken() {
   var s = session(); if (!s) return Promise.reject(new Error('Not signed in'));
   if (Date.now() < s.exp) return Promise.resolve(s.idToken);
-  var c = cfg();
-  return fetch('https://securetoken.googleapis.com/v1/token?key=' + encodeURIComponent(c.apiKey), { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(s.refresh) })
-    .then(function (r) { return r.json(); }).then(function (j) {
-      if (!j.id_token) throw new Error('Session expired. Sign in again.');
-      s.idToken = j.id_token; s.refresh = j.refresh_token; s.exp = Date.now() + (+j.expires_in - 60) * 1000; lsSet(SESSKEY, JSON.stringify(s)); return s.idToken;
-    });
+  return sbCall('/auth/v1/token?grant_type=refresh_token', { refresh_token: s.refresh }).then(function (j) { saveSess(j); return j.access_token; }).catch(function () { throw new Error('Session expired. Sign in again.'); });
 }
-function docUrl() { var c = cfg(), s = session(); return 'https://firestore.googleapis.com/v1/projects/' + encodeURIComponent(c.projectId) + '/databases/(default)/documents/dashboards/' + encodeURIComponent(s.uid); }
+function sbHeaders(t, extra) { var h = { apikey: cfg().key, Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }; for (var k in (extra || {})) h[k] = extra[k]; return h; }
 function cloudPull() {
-  return fbToken().then(function (t) { return fetch(docUrl(), { headers: { Authorization: 'Bearer ' + t } }); }).then(function (r) {
-    if (r.status === 404) return null; if (!r.ok) throw new Error('Cloud read failed (' + r.status + ')'); return r.json();
-  }).then(function (j) {
-    if (!j || !j.fields || !j.fields.json) return false;
-    var remote = JSON.parse(j.fields.json.stringValue);
+  var s = session();
+  return fbToken().then(function (t) { return fetch(sbBase() + '/rest/v1/dashboards?uid=eq.' + encodeURIComponent(s.uid) + '&select=json,updated', { headers: sbHeaders(t) }); }).then(function (r) {
+    if (!r.ok) throw new Error('Cloud read failed (' + r.status + ')'); return r.json();
+  }).then(function (rows) {
+    if (!rows || !rows.length || !rows[0].json) return false;
+    var remote = JSON.parse(rows[0].json);
     if ((remote.updated || 0) > (S.updated || 0)) { var pin = S.profile && S.profile.pinHash; S = remote; if (!S.profile) S.profile = { name: 'Palash', pinHash: pin || '' }; lsSet(KEY, JSON.stringify(S)); return true; }
     return false;
   });
 }
 function cloudPush() {
+  var s = session();
   return fbToken().then(function (t) {
-    return fetch(docUrl() + '?updateMask.fieldPaths=json&updateMask.fieldPaths=updated', { method: 'PATCH', headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { json: { stringValue: JSON.stringify(S) }, updated: { integerValue: String(S.updated) } } }) });
+    return fetch(sbBase() + '/rest/v1/dashboards?on_conflict=uid', { method: 'POST', headers: sbHeaders(t, { Prefer: 'resolution=merge-duplicates' }), body: JSON.stringify({ uid: s.uid, json: JSON.stringify(S), updated: S.updated }) });
   }).then(function (r) { setSync(r.ok ? 'Synced ' + new Date().toLocaleTimeString() : 'Sync failed (' + r.status + ')'); }).catch(function (e) { setSync('Sync failed: ' + e.message); });
 }
 
@@ -332,13 +335,13 @@ function vConnect() {
   var ac = window.AI ? AI.cfg() : {};
   h2 += '<div class="two"><div><h2>Assistant</h2><div class="card"><p>Turn on the web-searching assistant with your Anthropic API key. It is stored only in this browser and is never synced.</p><form data-form="ai" style="display:grid;gap:8px"><input type="password" name="key" placeholder="sk-ant-..." value="' + esc(ac.key || '') + '" autocomplete="off"><input type="text" name="model" placeholder="Model" value="' + esc(ac.model || '') + '"><label><input type="checkbox" name="web"' + (ac.web !== false ? ' checked' : '') + '> Allow web search</label><div class="row"><button class="btn">Save</button><button type="button" class="btn ghost" data-act="clearai">Remove key</button></div></form></div></div></div>';
   h2 += '<h2>Colors</h2><div class="card"><div class="pal">' + PALS.map(function (x) { var on = (lsGet('pd_pal') || 'apple') === x[0]; return '<button data-act="pal" data-id="' + x[0] + '" class="' + (on ? 'on' : '') + '"><i style="background:linear-gradient(90deg,' + x[3] + ' 55%,' + x[2] + ' 55%)"></i>' + x[1] + '</button>'; }).join('') + '</div></div>';
-  h2 += '<div class="two"><div><h2>Account and sync</h2><div class="card"><p>' + (cloudOn() ? (s ? 'Signed in as <b>' + esc(s.email) + '</b>. <span class="sync" id="syncmsg">' + esc(syncMsg) + '</span>' : 'Cloud sync is configured. Sign out and back in to link your account.') : 'Right now your data lives only in this browser. Add your Firebase keys below to sync across phone and laptop with a real login.') + '</p>' +
+  h2 += '<div class="two"><div><h2>Account and sync</h2><div class="card"><p>' + (cloudOn() ? (s ? 'Signed in as <b>' + esc(s.email) + '</b>. <span class="sync" id="syncmsg">' + esc(syncMsg) + '</span>' : 'Cloud sync is configured. Sign out and back in to link your account.') : 'Right now your data lives only in this browser. Add your Supabase URL and key below to sync across phone and laptop with a real login.') + '</p>' +
     '<div class="row">' + (s ? '<button class="btn" data-act="syncnow">Sync now</button><button class="btn ghost" data-act="signout">Sign out</button>' : '') + '<button class="btn ghost" data-act="lock">Lock</button>' + (S.profile.pinHash && !cloudOn() ? (bioOn() ? '<button class="btn ghost" data-act="biooff">Turn off Touch ID</button>' : '<button class="btn ghost" data-act="bioon">Turn on Touch ID</button>') : '') + '</div></div>' +
-    '<h2>Firebase keys</h2><div class="card"><form data-form="fb" style="display:grid;gap:8px"><input type="text" name="apiKey" placeholder="apiKey" value="' + esc(c.apiKey || '') + '"><input type="text" name="projectId" placeholder="projectId" value="' + esc(c.projectId || '') + '"><div class="row"><button class="btn">Save keys</button><button type="button" class="btn ghost" data-act="clearfb">Remove keys</button></div></form></div></div>';
+    '<h2>Supabase keys</h2><div class="card"><form data-form="fb" style="display:grid;gap:8px"><input type="text" name="url" placeholder="Project URL" value="' + esc(c.url || '') + '"><input type="text" name="key" placeholder="anon / publishable key" value="' + esc(c.key || '') + '"><div class="row"><button class="btn">Save keys</button><button type="button" class="btn ghost" data-act="clearfb">Remove keys</button></div></form></div></div>';
   h2 += '<div><h2>Apple Calendar</h2><div class="card"><p>Web pages cannot write into Apple Calendar directly, so there are two links. <b>Subscribe</b> keeps a calendar called Palash Deadlines updated on your Mac, iPhone and iPad. <b>Add once</b> imports your current list including tasks you added here.</p><div class="row"><a class="btn" href="' + subUrl() + '">Subscribe in Apple Calendar</a><button class="btn ghost" data-act="ics">Add once (.ics)</button><button class="btn ghost" data-act="notify">Browser notifications</button></div><p class="muted">Subscribe works from your hosted site (GitHub Pages) and shows the deadlines saved in the repo file deadlines.ics. Every item reminds you 7 days, 3 days and 1 day before. Browser notifications only fire while this tab is open.</p></div>' +
     '<h2>Bring in school assignments</h2><div class="card"><p>Export or subscribe to your school calendar (Google Classroom, Canvas, Schoology and PowerSchool all offer an .ics or calendar link) and import the file here. Items with due dates become tasks.</p><input type="file" id="icsfile" accept=".ics,text/calendar"></div>' +
     '<h2>Backup</h2><div class="card"><div class="row"><button class="btn ghost" data-act="export">Export my data</button><label class="btn ghost" style="cursor:pointer">Import data<input type="file" id="jsonfile" accept=".json" hidden></label></div></div></div></div>';
-  h2 += '<details><summary>Set up real login and cross-device sync (about 10 minutes)</summary><ol><li>Go to console.firebase.google.com and create a project.</li><li>Build, then Authentication, then enable Email/Password.</li><li>Build, then Firestore Database, create it in production mode.</li><li>In Firestore Rules, paste the rules below and publish.</li><li>Project settings, then General, then add a Web app. Copy <b>apiKey</b> and <b>projectId</b> into the keys form above.</li><li>Sign in with "Create account". Your data now saves to your own Firestore document.</li></ol><pre>rules_version = \'2\';\nservice cloud.firestore {\n  match /databases/{db}/documents {\n    match /dashboards/{uid} {\n      allow read, write: if request.auth != null &amp;&amp; request.auth.uid == uid;\n    }\n  }\n}</pre><p class="muted">The Firebase apiKey is not a secret. The rules above are what protect your data. After creating your own account, turn off new sign-ups in Authentication settings so nobody else can register.</p></details>';
+  h2 += '<details><summary>Set up login and cross-device sync with Supabase</summary><ol><li>Create a project at supabase.com.</li><li>Authentication, Providers, Email: turn off Confirm email.</li><li>SQL Editor: run the SQL below.</li><li>Project Settings, API: copy the Project URL and the anon key into the form above.</li><li>Sign in with Create account. After that, turn off sign-ups in Authentication, Sign In / Providers.</li></ol><pre>create table dashboards (uid uuid primary key references auth.users(id) on delete cascade, json text, updated bigint);\nalter table dashboards enable row level security;\ncreate policy own on dashboards for all using (auth.uid() = uid) with check (auth.uid() = uid);</pre><p class="muted">The anon key is not a secret. The row level security policy is what protects your data.</p></details>';
   h2 += '<details><summary>Put it on your GitHub repo and a web address</summary><pre>git clone https://github.com/palashraks-afk/Dashboard\ncd Dashboard\n# copy index.html, styles.css, app.js, data.js into this folder\ngit add . &amp;&amp; git commit -m "Add daily dashboard" &amp;&amp; git push</pre><p>Then on GitHub: Settings, Pages, Source "Deploy from a branch", branch main, folder /root. Your dashboard will be live at https://palashraks-afk.github.io/Dashboard/ in a minute or two. Change deadlines or add programs by editing data.js.</p></details>';
   return h2;
 }
@@ -489,7 +492,7 @@ document.addEventListener('submit', function (e) {
   else if (k === 'event') { var ev = { id: uid('e'), title: v.title.trim(), start: v.start, end: v.end, cat: v.cat }; if (v.repeat === 'once') ev.date = v.date; else ev.days = [+v.dow]; S.events.push(ev); save(); render(); }
   else if (k === 'sat') { var e1 = +v.ebrw || 0, m1 = +v.math || 0; if (!e1 || !m1) return; S.sat.tests.push({ id: uid('s'), label: v.label, ebrw: e1, math: m1, total: e1 + m1, note: v.note || '' }); save(); render(); }
   else if (k === 'ai') { AI.saveCfg({ key: (v.key || '').trim(), model: (v.model || '').trim() || 'claude-sonnet-5-5', web: !!f.querySelector('[name=web]').checked }); alert('Assistant saved.'); render(); }
-  else if (k === 'fb') { lsSet(CFGKEY, JSON.stringify({ apiKey: v.apiKey.trim(), projectId: v.projectId.trim() })); alert('Saved. Sign out and sign in to link your account.'); render(); }
+  else if (k === 'fb') { lsSet(CFGKEY, JSON.stringify({ url: v.url.trim(), key: v.key.trim() })); alert('Saved. Sign out and sign in to link your account.'); render(); }
   else if (k === 'paste') { var ps = parsePaste(v.txt, v.course); ps.forEach(function (x) { if (!S.tasks.some(function (t) { return t.title === x.title && t.due === x.due; })) S.tasks.push({ id: uid('t'), title: x.title, due: x.due, course: x.course, type: 'Assignment', done: false }); }); save(); alert(ps.length + ' added.'); render(); }
   else if (k === 'setpin') { S.profile.name = v.name || 'Palash'; if (v.pin && v.pin.length >= 4) { hashPin(v.pin).then(function (h) { S.profile.pinHash = h; save(); enter(); }); } else { var er = document.getElementById('err'); if (er) er.textContent = 'Use at least 4 digits, or continue without a PIN.'; } }
   else if (k === 'pin') { hashPin(v.pin).then(function (h) { if (h === S.profile.pinHash) enter(); else { var er2 = document.getElementById('err'); if (er2) er2.textContent = 'Wrong PIN.'; } }); }
