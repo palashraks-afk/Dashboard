@@ -235,7 +235,7 @@ function dueChip(iso, text, approx, closed) {
 }
 function fmtShort(iso) { return parseIso(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
 function colHead(a, b, c, d) { return '<div class="cols head"><span>' + a + '</span><span>' + b + '</span><span>' + c + '</span><span>' + d + '</span></div>'; }
-var PSTAR = { p67: 5, p68: 5, p20: 5, p43: 5, p12: 5, p73: 5, p16: 5, p10: 5, p28: 5, p8: 1, p22: 4, p13: 4, p34: 1, p36: 1, p11: 4, p46: 4, p29: 2, p33: 1, p75: 4, p76: 4, p77: 3, p78: 2, p79: 2, p80: 3, p81: 3, p82: 3, p83: 3, p84: 3, p92: 2, p90: 5, p91: 3, p1: 4, p89: 3, p85: 3, p86: 2, p87: 4, p88: 3, p69: 4, p35: 4, p7: 4, p40: 4, p32: 4, p71: 4, p15: 4, p53: 4, p50: 4, p48: 4, p54: 4, p21: 2, p5: 2, p38: 2, p39: 2, p6: 2, p63: 2, p66: 2 };
+var PSTAR = { p93: 5, p94: 4, p95: 4, p96: 3, p97: 3, p98: 2, p99: 3, p100: 3, p67: 5, p68: 5, p20: 5, p43: 5, p12: 5, p73: 5, p16: 5, p10: 5, p28: 5, p8: 1, p22: 4, p13: 4, p34: 1, p36: 1, p11: 4, p46: 4, p29: 2, p33: 1, p75: 4, p76: 4, p77: 3, p78: 2, p79: 2, p80: 3, p81: 3, p82: 3, p83: 3, p84: 3, p92: 2, p90: 5, p91: 3, p1: 4, p89: 3, p85: 3, p86: 2, p87: 4, p88: 3, p69: 4, p35: 4, p7: 4, p40: 4, p32: 4, p71: 4, p15: 4, p53: 4, p50: 4, p48: 4, p54: 4, p21: 2, p5: 2, p38: 2, p39: 2, p6: 2, p63: 2, p66: 2 };
 function starsOf(id) {
   var v = S.stars && S.stars[id]; if (v) return v;
   var c = SEED.competitions.filter(function (x) { return x.id === id; })[0];
@@ -285,9 +285,10 @@ function vComps() {
   var rows = SEED.competitions.slice();
   function ck(c) { return ((S.status[c.id] || c.status) === 'Closed' ? 'zz' : '') + (c.iso || '9999'); }
   rows.sort(function (a, b) { return F.sort === 'rank' ? byStars(a, b, ck(a), ck(b)) : (ck(a) < ck(b) ? -1 : ck(a) > ck(b) ? 1 : 0); });
-  var cnt = {}; SEED.competitions.forEach(function (c) { var s0 = S.status[c.id] || c.status || 'Not started'; cnt[s0] = (cnt[s0] || 0) + 1; }); var o = '<div class="hd"><h1>Competitions</h1>' + segHtml() + '</div>' + chipsHtml(CST, cnt, F.cst, 'chipc') + colHead('Due', 'Competition', 'What to do next', 'Status') + '<div class="rows">';
+  var cnt = {}; SEED.competitions.forEach(function (c) { var s0 = S.status[c.id] || c.status || 'Not started'; cnt[s0] = (cnt[s0] || 0) + 1; }); var o = '<div class="hd"><h1>Competitions</h1>' + segHtml() + '</div>' + chipsHtml(CST, cnt, F.cst, 'chipc') + '<div class="chips"><button class="chip2' + (F.quick ? ' on' : '') + '" data-act="quick">Quick builds and submits <b>' + SEED.competitions.filter(function (c) { return c.quick; }).length + '</b></button></div>' + colHead('Due', 'Competition', 'What to do next', 'Status') + '<div class="rows">';
   rows.forEach(function (c) {
     var st = S.status[c.id] || c.status || 'Not started'; if (F.cst && st !== F.cst) return;
+    if (F.quick && !c.quick) return;
     var cl = st === 'Closed'; o += dRow({ id: c.id, iso: c.iso, approx: c.approx, closed: cl, dateText: shortDate(c.dateText), name: c.name, stars: starsOf(c.id), prog: progOf(c.id), sub: shortTxt(c.sub, 40), next: firstStep(c.needs, 90), st: sel(c.id, CST, st) });
   });
   return o + '</div>';
@@ -765,6 +766,7 @@ document.addEventListener('click', function (e) {
   else if (a === 'setstar') { S.stars = S.stars || {}; S.stars[id] = +b.getAttribute('data-v'); save(); render(); showDetail(id); }
   else if (a === 'sortset') { F.sort = id; render(); }
   else if (a === 'chipc') { F.cst = id; render(); }
+  else if (a === 'quick') { F.quick = !F.quick; render(); }
   else if (a === 'chipp') { F.st = id; render(); }
   else if (a === 'focstart') { if (FOC.run) { FOC.run = false; clearInterval(FOC.tm); } else { FOC.run = true; FOC.end = Date.now() + FOC.left * 1000; clearInterval(FOC.tm); FOC.tm = setInterval(focTick, 500); } render(); }
   else if (a === 'focreset') { FOC.run = false; clearInterval(FOC.tm); FOC.left = FOC.len * 60; render(); }
