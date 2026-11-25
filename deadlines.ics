@@ -51,29 +51,6 @@ DESCRIPTION:Due tomorrow
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:pd-p14-20261130@dashboard
-DTSTAMP:20261124T000000Z
-DTSTART;VALUE=DATE:20261130
-DTEND;VALUE=DATE:20261201
-SUMMARY:Apply to Dept of Education internship
-DESCRIPTION:Open the program page\, confirm the deadline and eligibility\, then start the application. https://www.ed.gov
-BEGIN:VALARM
-TRIGGER:-P7D
-ACTION:DISPLAY
-DESCRIPTION:Due in a week
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P3D
-ACTION:DISPLAY
-DESCRIPTION:Due in 3 days
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P1D
-ACTION:DISPLAY
-DESCRIPTION:Due tomorrow
-END:VALARM
-END:VEVENT
-BEGIN:VEVENT
 UID:pd-t5-20261201@dashboard
 DTSTAMP:20261124T000000Z
 DTSTART;VALUE=DATE:20261201
@@ -120,12 +97,12 @@ DESCRIPTION:Due tomorrow
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:pd-c15-20261202@dashboard
+UID:pd-p49-20261201@dashboard
 DTSTAMP:20261124T000000Z
-DTSTART;VALUE=DATE:20261202
-DTEND;VALUE=DATE:20261203
-SUMMARY:Submit Science Olympiad
-DESCRIPTION:Ask your school coach to register the team before Dec 2. Regionals are Mar 13. https://socalscioly.org/
+DTSTART;VALUE=DATE:20261201
+DTEND;VALUE=DATE:20261202
+SUMMARY:Apply to Moffitt Integrated Math Oncology
+DESCRIPTION:In person in Tampa\, Florida\, June 7 to July 30. 16 or older and in grade 11 or below. Check housing and residency rules first. https://www.moffitt.org/education/research-education-and-training/pre-college-programs/hip-imo/
 BEGIN:VALARM
 TRIGGER:-P7D
 ACTION:DISPLAY
@@ -143,12 +120,35 @@ DESCRIPTION:Due tomorrow
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:pd-x6-20261205@dashboard
+UID:pd-x5-20261205@dashboard
 DTSTAMP:20261124T000000Z
 DTSTART;VALUE=DATE:20261205
 DTEND;VALUE=DATE:20261206
 SUMMARY:SAT test day
 DESCRIPTION:
+BEGIN:VALARM
+TRIGGER:-P7D
+ACTION:DISPLAY
+DESCRIPTION:Due in a week
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-P3D
+ACTION:DISPLAY
+DESCRIPTION:Due in 3 days
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-P1D
+ACTION:DISPLAY
+DESCRIPTION:Due tomorrow
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:pd-c44-20261208@dashboard
+DTSTAMP:20261124T000000Z
+DTSTART;VALUE=DATE:20261208
+DTEND;VALUE=DATE:20261209
+SUMMARY:Submit NASA Dream with Us: High School Engineering Challenge
+DESCRIPTION:Read the challenge rules and important dates on the NASA page\, then form a team and start the engineering design notebook. https://www.nasa.gov/aeronautics/aeronautics-stem/2026-2027-dwu-high-school-engineering-challenge/
 BEGIN:VALARM
 TRIGGER:-P7D
 ACTION:DISPLAY
@@ -586,29 +586,6 @@ DTSTART;VALUE=DATE:20270115
 DTEND;VALUE=DATE:20270116
 SUMMARY:Submit Lung Cancer Innovation Challenge
 DESCRIPTION:Register by Jan 15. Send a one-page plan by Feb 1 for getting more people screened for lung cancer. An app can be part of the plan. https://www.alcsi.org/innovation-challenge
-BEGIN:VALARM
-TRIGGER:-P7D
-ACTION:DISPLAY
-DESCRIPTION:Due in a week
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P3D
-ACTION:DISPLAY
-DESCRIPTION:Due in 3 days
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P1D
-ACTION:DISPLAY
-DESCRIPTION:Due tomorrow
-END:VALARM
-END:VEVENT
-BEGIN:VEVENT
-UID:pd-p19-20270116@dashboard
-DTSTAMP:20261124T000000Z
-DTSTART;VALUE=DATE:20270116
-DTEND;VALUE=DATE:20270117
-SUMMARY:Apply to Buck Institute
-DESCRIPTION:Find the real cost and deadline on the program site before spending time. https://www.buckinstitute.org
 BEGIN:VALARM
 TRIGGER:-P7D
 ACTION:DISPLAY
@@ -1293,12 +1270,35 @@ DESCRIPTION:Due tomorrow
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:pd-p24-20270215@dashboard
+UID:pd-p51-20270215@dashboard
 DTSTAMP:20261124T000000Z
 DTSTART;VALUE=DATE:20270215
 DTEND;VALUE=DATE:20270216
-SUMMARY:Apply to UCLA CNSI
-DESCRIPTION:Find the real cost and deadline on the program site before spending time. https://cnsi.ucla.edu
+SUMMARY:Apply to Wake Forest WFIRM
+DESCRIPTION:The 4-week in-person research program is for North Carolina students only. Only the virtual academy is open to you. https://school.wakehealth.edu/research/institutes-and-centers/wake-forest-institute-for-regenerative-medicine/education-and-training/high-school-summer-research-exposure-program
+BEGIN:VALARM
+TRIGGER:-P7D
+ACTION:DISPLAY
+DESCRIPTION:Due in a week
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-P3D
+ACTION:DISPLAY
+DESCRIPTION:Due in 3 days
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-P1D
+ACTION:DISPLAY
+DESCRIPTION:Due tomorrow
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:pd-p73-20270215@dashboard
+DTSTAMP:20261124T000000Z
+DTSTART;VALUE=DATE:20270215
+DTEND;VALUE=DATE:20270216
+SUMMARY:Apply to Clark Scholars
+DESCRIPTION:You must be 17 by June 20\, 2027. Needs transcripts and three recommendations. https://www.depts.ttu.edu/clarkscholars/ApplicationDetails.php
 BEGIN:VALARM
 TRIGGER:-P7D
 ACTION:DISPLAY
@@ -1321,7 +1321,7 @@ DTSTAMP:20261124T000000Z
 DTSTART;VALUE=DATE:20270216
 DTEND;VALUE=DATE:20270217
 SUMMARY:Apply to Iowa SSTP
-DESCRIPTION:Find the real cost and deadline on the program site before spending time. https://medicine.uiowa.edu/sstp/
+DESCRIPTION:For grades 10 to 11. Program June 16 to July 23. Recommendations are due the same day. https://belinblank.education.uiowa.edu/students/sstp/
 BEGIN:VALARM
 TRIGGER:-P7D
 ACTION:DISPLAY
@@ -1362,7 +1362,30 @@ DESCRIPTION:Due tomorrow
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:pd-x59-20270219@dashboard
+UID:pd-c22-20270219@dashboard
+DTSTAMP:20261124T000000Z
+DTSTART;VALUE=DATE:20270219
+DTEND;VALUE=DATE:20270220
+SUMMARY:Submit MathWorks Math Modeling Challenge (M3)
+DESCRIPTION:Form a team of 3 to 5 juniors or seniors with a teacher coach\, then register when the 2027 dates are posted on m3challenge.siam.org. https://m3challenge.siam.org/
+BEGIN:VALARM
+TRIGGER:-P7D
+ACTION:DISPLAY
+DESCRIPTION:Due in a week
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-P3D
+ACTION:DISPLAY
+DESCRIPTION:Due in 3 days
+END:VALARM
+BEGIN:VALARM
+TRIGGER:-P1D
+ACTION:DISPLAY
+DESCRIPTION:Due tomorrow
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:pd-x60-20270219@dashboard
 DTSTAMP:20261124T000000Z
 DTSTART;VALUE=DATE:20270219
 DTEND;VALUE=DATE:20270220
@@ -1477,12 +1500,12 @@ DESCRIPTION:Due tomorrow
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:pd-p27-20270227@dashboard
+UID:pd-c27-20270227@dashboard
 DTSTAMP:20261124T000000Z
 DTSTART;VALUE=DATE:20270227
 DTEND;VALUE=DATE:20270228
-SUMMARY:Apply to NIST
-DESCRIPTION:Open the program page\, confirm the deadline and eligibility\, then start the application. https://www.nist.gov/careers/student-opportunities
+SUMMARY:Submit Lockheed Martin Code Quest
+DESCRIPTION:Find a teacher coach and a teammate or two. Watch for registration and sign up early. https://www.lockheedmartin.com/en-us/who-we-are/communities/codequest.html
 BEGIN:VALARM
 TRIGGER:-P7D
 ACTION:DISPLAY
@@ -1546,7 +1569,7 @@ DESCRIPTION:Due tomorrow
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:pd-x67-20270306@dashboard
+UID:pd-x68-20270306@dashboard
 DTSTAMP:20261124T000000Z
 DTSTART;VALUE=DATE:20270306
 DTEND;VALUE=DATE:20270307
@@ -1615,75 +1638,6 @@ DESCRIPTION:Due tomorrow
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:pd-p48-20270312@dashboard
-DTSTAMP:20261124T000000Z
-DTSTART;VALUE=DATE:20270312
-DTEND;VALUE=DATE:20270313
-SUMMARY:Apply to City of Hope Roberts Academy
-DESCRIPTION:Open the program page\, confirm the deadline and eligibility\, then start the application. https://www.cityofhope.org/education/summer-student-academy
-BEGIN:VALARM
-TRIGGER:-P7D
-ACTION:DISPLAY
-DESCRIPTION:Due in a week
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P3D
-ACTION:DISPLAY
-DESCRIPTION:Due in 3 days
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P1D
-ACTION:DISPLAY
-DESCRIPTION:Due tomorrow
-END:VALARM
-END:VEVENT
-BEGIN:VEVENT
-UID:pd-p50-20270313@dashboard
-DTSTAMP:20261124T000000Z
-DTSTART;VALUE=DATE:20270313
-DTEND;VALUE=DATE:20270314
-SUMMARY:Apply to Stanford Pre-Collegiate
-DESCRIPTION:Check the aid options first\, then decide if the cost is worth it. https://spcs.stanford.edu
-BEGIN:VALARM
-TRIGGER:-P7D
-ACTION:DISPLAY
-DESCRIPTION:Due in a week
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P3D
-ACTION:DISPLAY
-DESCRIPTION:Due in 3 days
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P1D
-ACTION:DISPLAY
-DESCRIPTION:Due tomorrow
-END:VALARM
-END:VEVENT
-BEGIN:VEVENT
-UID:pd-p51-20270315@dashboard
-DTSTAMP:20261124T000000Z
-DTSTART;VALUE=DATE:20270315
-DTEND;VALUE=DATE:20270316
-SUMMARY:Apply to Wake Forest WFIRM
-DESCRIPTION:Find the real cost and deadline on the program site before spending time. https://school.wakehealth.edu
-BEGIN:VALARM
-TRIGGER:-P7D
-ACTION:DISPLAY
-DESCRIPTION:Due in a week
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P3D
-ACTION:DISPLAY
-DESCRIPTION:Due in 3 days
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P1D
-ACTION:DISPLAY
-DESCRIPTION:Due tomorrow
-END:VALARM
-END:VEVENT
-BEGIN:VEVENT
 UID:pd-c55-20270329@dashboard
 DTSTAMP:20261124T000000Z
 DTSTART;VALUE=DATE:20270329
@@ -1707,12 +1661,12 @@ DESCRIPTION:Due tomorrow
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:pd-p54-20270330@dashboard
+UID:pd-p14-20270331@dashboard
 DTSTAMP:20261124T000000Z
-DTSTART;VALUE=DATE:20270330
-DTEND;VALUE=DATE:20270331
-SUMMARY:Apply to Scripps Translational
-DESCRIPTION:Open the program page\, confirm the deadline and eligibility\, then start the application. https://education.scripps.edu/k-12-outreach/
+DTSTART;VALUE=DATE:20270331
+DTEND;VALUE=DATE:20270401
+SUMMARY:Apply to Dept of Education internship
+DESCRIPTION:Unpaid. Age 16 or older\, high school students allowed. The Nov 30 date you had was the cutoff for the January to May term. The official page says program opportunities can change. https://www.ed.gov/about/doing-business-ed/working-ed/internships-ed/ed-student-volunteer-unpaid-internship-program
 BEGIN:VALARM
 TRIGGER:-P7D
 ACTION:DISPLAY
@@ -1736,29 +1690,6 @@ DTSTART;VALUE=DATE:20270331
 DTEND;VALUE=DATE:20270401
 SUMMARY:Apply to Berkeley BSAS and BEYA
 DESCRIPTION:Check the aid options first\, then decide if the cost is worth it. https://globe.berkeley.edu/programs/summer-programs/bsas/
-BEGIN:VALARM
-TRIGGER:-P7D
-ACTION:DISPLAY
-DESCRIPTION:Due in a week
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P3D
-ACTION:DISPLAY
-DESCRIPTION:Due in 3 days
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P1D
-ACTION:DISPLAY
-DESCRIPTION:Due tomorrow
-END:VALARM
-END:VEVENT
-BEGIN:VEVENT
-UID:pd-p56-20270331@dashboard
-DTSTAMP:20261124T000000Z
-DTSTART;VALUE=DATE:20270331
-DTEND;VALUE=DATE:20270401
-SUMMARY:Apply to UAlbany Bioinformatics Camp (rolling\, worldwide)
-DESCRIPTION:Open the program page\, confirm the deadline and eligibility\, then start the application. https://www.albany.edu/rna
 BEGIN:VALARM
 TRIGGER:-P7D
 ACTION:DISPLAY
@@ -1822,12 +1753,12 @@ DESCRIPTION:Due tomorrow
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:pd-p57-20270402@dashboard
+UID:pd-p9-20270415@dashboard
 DTSTAMP:20261124T000000Z
-DTSTART;VALUE=DATE:20270402
-DTEND;VALUE=DATE:20270403
-SUMMARY:Apply to Columbia Pre-College
-DESCRIPTION:Check the aid options first\, then decide if the cost is worth it. https://precollege.sps.columbia.edu
+DTSTART;VALUE=DATE:20270415
+DTEND;VALUE=DATE:20270416
+SUMMARY:Apply to ASDRP
+DESCRIPTION:Apply by the Feb 1 priority date. The spring round is due Dec 15. https://www.asdrp.org/apply
 BEGIN:VALARM
 TRIGGER:-P7D
 ACTION:DISPLAY
@@ -1845,7 +1776,7 @@ DESCRIPTION:Due tomorrow
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:pd-x80-20270416@dashboard
+UID:pd-x77-20270416@dashboard
 DTSTAMP:20261124T000000Z
 DTSTART;VALUE=DATE:20270416
 DTEND;VALUE=DATE:20270417
@@ -1914,30 +1845,7 @@ DESCRIPTION:Due tomorrow
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:pd-p62-20270501@dashboard
-DTSTAMP:20261124T000000Z
-DTSTART;VALUE=DATE:20270501
-DTEND;VALUE=DATE:20270502
-SUMMARY:Apply to UCLA SCIP
-DESCRIPTION:Check the aid options first\, then decide if the cost is worth it. https://summer.ucla.edu/program/summer-courses-intensive-program-scip/
-BEGIN:VALARM
-TRIGGER:-P7D
-ACTION:DISPLAY
-DESCRIPTION:Due in a week
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P3D
-ACTION:DISPLAY
-DESCRIPTION:Due in 3 days
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P1D
-ACTION:DISPLAY
-DESCRIPTION:Due tomorrow
-END:VALARM
-END:VEVENT
-BEGIN:VEVENT
-UID:pd-x84-20270501@dashboard
+UID:pd-x80-20270501@dashboard
 DTSTAMP:20261124T000000Z
 DTSTART;VALUE=DATE:20270501
 DTEND;VALUE=DATE:20270502
@@ -1960,53 +1868,7 @@ DESCRIPTION:Due tomorrow
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:pd-p64-20270505@dashboard
-DTSTAMP:20261124T000000Z
-DTSTART;VALUE=DATE:20270505
-DTEND;VALUE=DATE:20270506
-SUMMARY:Apply to Cornell Precollege
-DESCRIPTION:Check the aid options first\, then decide if the cost is worth it. https://sce.cornell.edu/precollege
-BEGIN:VALARM
-TRIGGER:-P7D
-ACTION:DISPLAY
-DESCRIPTION:Due in a week
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P3D
-ACTION:DISPLAY
-DESCRIPTION:Due in 3 days
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P1D
-ACTION:DISPLAY
-DESCRIPTION:Due tomorrow
-END:VALARM
-END:VEVENT
-BEGIN:VEVENT
-UID:pd-p65-20270508@dashboard
-DTSTAMP:20261124T000000Z
-DTSTART;VALUE=DATE:20270508
-DTEND;VALUE=DATE:20270509
-SUMMARY:Apply to Brown Pre-College
-DESCRIPTION:Check the aid options first\, then decide if the cost is worth it. https://precollege.brown.edu/
-BEGIN:VALARM
-TRIGGER:-P7D
-ACTION:DISPLAY
-DESCRIPTION:Due in a week
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P3D
-ACTION:DISPLAY
-DESCRIPTION:Due in 3 days
-END:VALARM
-BEGIN:VALARM
-TRIGGER:-P1D
-ACTION:DISPLAY
-DESCRIPTION:Due tomorrow
-END:VALARM
-END:VEVENT
-BEGIN:VEVENT
-UID:pd-x87-20270521@dashboard
+UID:pd-x81-20270521@dashboard
 DTSTAMP:20261124T000000Z
 DTSTART;VALUE=DATE:20270521
 DTEND;VALUE=DATE:20270522
@@ -2029,7 +1891,7 @@ DESCRIPTION:Due tomorrow
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
-UID:pd-x88-20270605@dashboard
+UID:pd-x82-20270605@dashboard
 DTSTAMP:20261124T000000Z
 DTSTART;VALUE=DATE:20270605
 DTEND;VALUE=DATE:20270606
